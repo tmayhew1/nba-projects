@@ -11,8 +11,8 @@ psearch = function(input){
 }
 
 #Start here!
-year_input = "2015-2016"
-stat_input = "Points Added"
+year_input = "2024-2025"
+stat_input = "3-Pointers Made"
     stat_col = menu_map(stat_input)
 per_game = "Per Game"
     #per_game = "Total"
@@ -44,7 +44,7 @@ leaders_display = leaders_static %>% select(Player, Team, G, Stat)
 names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
 # Compare to
-year_input_2 = "2013-2014"
+year_input_2 = "2007-2008"
 all_year_2 = df %>% filter(Year == year_input_2)
 leaders_static_2 = all_year_2[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
@@ -81,8 +81,8 @@ comb_df = rbind.data.frame(all_year, all_year_2)
 summ = comb_df[,c("Player","Team", "Year","Hex","G",stat_col)]
 names(summ)[ncol(summ)] = "Stat"
 if (pg_factor){
-  min_games = .75*(max(summ$G))
-  summ = summ %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
+  min_games = .75*(min(max(all_year$G),max(all_year_2$G)))
+  summ = summ %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the (in this case, shorter) season.
     arrange(desc(Stat))
 } else{
   summ = summ %>% 
@@ -106,9 +106,10 @@ plot_data <- ggplot_build(plot_3_in)$data[[1]]
 plot_3 = plot_3_in + geom_boxplot(data = summ %>% filter(r_u == 1), width = (1/15)*(max(plot_data$ymax)-(min(plot_data$ymin))),
              aes(x = Stat, y = ((1/4)*min(plot_data$ymin) + (3/4)*max(plot_data$ymax)), color = Year), alpha = I(2/5), varwidth = T) + theme_bw() +
   geom_text(size = 3, color = "black", hjust = 0.5, aes(x = ((1/2)*min(comp_df$Stat) + (1/2)*max(comp_df$Stat)), y = ((1/6)*min(plot_data$ymin) + (5/6)*max(plot_data$ymax)), label = "Leaders")) +
-  scale_y_continuous("Normalized Density")
+  scale_y_continuous("Normalized Density") + ggtitle(label = "Distribution Comparison") +
+  scale_x_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")))
 
 print(leaders_display)
 print(plot)
 print(plot_2)
-plot_3
+print(plot_3)
