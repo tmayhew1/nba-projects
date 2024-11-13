@@ -37,14 +37,14 @@ plot = leaders_static %>% ggplot(aes(x = Player, y = Stat, fill = Hex, alpha = I
   geom_bar(stat = "identity", color = "black", aes(fill = Hex)) + theme_bw() + coord_flip() +
   scale_fill_identity() + theme(legend.position = "none") +
   scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(leaders_static$Stat)+((max(leaders_static$Stat)/9.5)))) + scale_x_discrete(name = "") +
-  theme(axis.text.y = element_text(hjust = 0,size=6)) +
-  geom_text(aes(label = display_stat_single), hjust = 1, size = 3) + 
+  theme(axis.text.y = element_text(hjust = 0,size=6,face="bold")) +
+  geom_text(aes(label = display_stat_single,fontface = "bold",), hjust = 1, size = 3) + 
   ggtitle(label = "", subtitle = paste0(year_input, " Season Leaders"))
 leaders_display = leaders_static %>% select(Player, Team, G, Stat)
 names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
 # Compare to
-year_input_2 = "2007-2008"
+year_input_2 = "2017-2018"
 all_year_2 = df %>% filter(Year == year_input_2)
 leaders_static_2 = all_year_2[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
@@ -65,6 +65,9 @@ comp_df = data.frame(leaders_static, Year = year_input) %>% rbind.data.frame(
 comp_df$rk = factor(comp_df$rk, levels = rev(paste0("#",seq(1:10))))
 comp_df$r_u = 1
 comp_df = comp_df %>% mutate(disPlayer = paste0(Player," "))
+max_S = max(comp_df$Stat)
+comp_df = comp_df %>% mutate(disPlayer = ifelse(Stat < .3*(max_S),"",disPlayer)) %>% 
+  separate(disPlayer, into = c("disPlayer","bbref"),sep = "\\(")
 
 plot_2 = comp_df %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
   facet_grid(Year ~ .) + 
@@ -72,7 +75,7 @@ plot_2 = comp_df %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
   scale_fill_identity() + theme(legend.position = "none") +
   scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(comp_df$Stat)+((max(comp_df$Stat)/9.5)))) + scale_x_discrete(name = "") +
   theme(axis.text.y = element_text(hjust = 0)) + 
-  geom_text(aes(label = disPlayer), hjust = 1, size = I(2.25)) + 
+  geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) + 
   geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
   ggtitle(label = "",subtitle = paste0("Comparing the ",year_input," and ",year_input_2," NBA seasons"))
 
