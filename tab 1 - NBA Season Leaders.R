@@ -12,7 +12,7 @@ psearch = function(input){
 
 #Start here!
 year_input = "2024-2025"
-stat_input = "3-Pointers Made"
+stat_input = "3-Pointers Added"
     stat_col = menu_map(stat_input)
 per_game = "Per Game"
     #per_game = "Total"
@@ -36,10 +36,10 @@ leaders_static = leaders_static %>% mutate(display_stat_single = paste0(display_
 plot = leaders_static %>% ggplot(aes(x = Player, y = Stat, fill = Hex, alpha = I(3/5))) +
   geom_bar(stat = "identity", color = "black", aes(fill = Hex)) + theme_bw() + coord_flip() +
   scale_fill_identity() + theme(legend.position = "none") +
-  scale_y_continuous(name = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input), limits = c(0,max(leaders_static$Stat)+((max(leaders_static$Stat)/9.5)))) + scale_x_discrete(name = "") +
-  theme(axis.text.y = element_text(hjust = 0)) + 
-  geom_text(aes(label = display_stat_single), hjust = 1, size = 3)
-
+  scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(leaders_static$Stat)+((max(leaders_static$Stat)/9.5)))) + scale_x_discrete(name = "") +
+  theme(axis.text.y = element_text(hjust = 0,size=6)) +
+  geom_text(aes(label = display_stat_single), hjust = 1, size = 3) + 
+  ggtitle(label = "", subtitle = paste0(year_input, " Season Leaders"))
 leaders_display = leaders_static %>% select(Player, Team, G, Stat)
 names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
@@ -70,11 +70,11 @@ plot_2 = comp_df %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
   facet_grid(Year ~ .) + 
   geom_bar(stat = "identity", color = "black", aes(fill = Hex),alpha = I(3/5)) + theme_bw() + coord_flip() +
   scale_fill_identity() + theme(legend.position = "none") +
-  scale_y_continuous(name = stat_input, limits = c(0,max(comp_df$Stat)+((max(comp_df$Stat)/9.5)))) + scale_x_discrete(name = "") +
+  scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(comp_df$Stat)+((max(comp_df$Stat)/9.5)))) + scale_x_discrete(name = "") +
   theme(axis.text.y = element_text(hjust = 0)) + 
   geom_text(aes(label = disPlayer), hjust = 1, size = I(2.25)) + 
   geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
-  ggtitle(label = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input, " Leaders"),subtitle = paste0("comparing the ",year_input," and ",year_input_2," NBA seasons"))
+  ggtitle(label = "",subtitle = paste0("Comparing the ",year_input," and ",year_input_2," NBA seasons"))
 
 # Summary Statistics
 comb_df = rbind.data.frame(all_year, all_year_2)
