@@ -73,8 +73,77 @@ if (!exist_yn){
   }
   
   all_data_standard = all_data_standard %>% mutate(Year = paste0(Year-1,"-",Year), Player = paste0(Player, " (", key, ")")) %>% select(-key)
-  all_data_standard %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
+
+  df = all_data_standard %>% as_tibble()
+  summary = df %>% group_by(Year) %>% 
+    summarise(.groups = "drop"
+              ,PTS = sum(PTS)
+              ,TRB = sum(TRB)
+              ,DRB = sum(DRB)
+              ,ORB = sum(ORB)
+              ,AST = sum(AST)
+              ,STL = sum(STL)
+              ,BLK = sum(BLK)
+              ,TOV = sum(TOV)
+              ,MP = sum(MP)
+              ,X3PA = sum(X3PA)
+              ,X3P = sum(X3P)
+              ,X2PA = sum(X2PA)
+              ,X2P = sum(X2P)
+              ,FT = sum(FT)
+              ,FTA = sum(FTA)
+    ) %>% transmute(Year
+                    ,laPTSperM = PTS/MP
+                    ,laTRBperM = TRB/MP
+                    ,laDRBperM = DRB/MP
+                    ,laORBperM = ORB/MP
+                    ,laASTperM = AST/MP
+                    ,laSTLperM = STL/MP
+                    ,laBLKperM = BLK/MP
+                    ,laTOVperM = TOV/MP
+                    ,laPTSperMake = ifelse(is.na(X3PA),2,((3*X3P)+(2*X2P))/(X3P + X2P)) 
+                    ,laPTSperPoss = (PTS)/((X2PA + X3PA) + TOV + (FTA/2.1))
+                    ,laORBrate = (ORB/TRB)
+                    ,laDRBrate = (DRB/TRB)
+    )
+  
+  # build a model to predict points per possession based on PTS per minute and TRB per minute
+  summary = summary %>% mutate(model_set = ifelse(is.na(laPTSperPoss),"test","train"))
+  model = lm(data = summary %>% filter(model_set == "train"), formula = laPTSperPoss ~ laPTSperM + laTRBperM)
+  new_pr = predict(model, newdata = summary %>% filter(model_set == "test") %>% select(laPTSperM, laTRBperM))
+  summary$laPTSperPoss[1:30] = new_pr
+  
+  va_df = df %>% left_join(summary, by = "Year") %>% mutate(
+    valueAdd_1 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+      PTSAdd + #points added (efficiency)
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+      (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+      -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+      (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+      (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+    
+    valueAdd_2 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)               #fixes 74-77
+      PTSAdd + #points added (efficiency)
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+      (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+      #-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+      (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+      (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+    
+    valueAdd_3 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)               #fixes 52-73
+      PTSAdd + #points added (efficiency)
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      #-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+      (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.28)*(0.72) + #(est) d rebounds added
+      (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.72)*(0.28) #(est) o rebounds added
+    
+  ) %>% mutate(valueAdd = coalesce(valueAdd_1,valueAdd_2,valueAdd_3))
+  
+  all_data_standard %>% left_join(va_df %>% select(Player, Year, valueAdd), by = c("Year", "Player")) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
   
 }
+
 exist_yn = ifelse(file.exists(today_file),T,F)
 print(paste0(Sys.Date()," - File created: ",exist_yn))

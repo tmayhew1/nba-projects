@@ -25,9 +25,10 @@
 28,PF,Personal Fouls
 29,Player,Player
 30,PTS,Points
-31,PTSAdd,Points Added
+31,PTSAdd,Efficiency Points Added
 32,TRB,Rebounds
 33,STL,Steals
 34,TOV,Turnovers
 35,Year,Year
 36,fPTS,Fantasy Points
+37,valueAdd,Value Added

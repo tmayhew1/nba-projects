@@ -1,6 +1,7 @@
 library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes)
 source("totals_collect.R") # totals_collect.R must be run!
 df = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
+gpl_df = df %>% group_by(Year) %>% summarise(.groups = "drop", max_G = max(G)) %>% mutate(gpl = ifelse(max_G > 50,.75*max_G,.6*max_G)) %>% select(-max_G)
 menu_map = function(input){
   map = read.csv("Complete Data/menu_options.csv")[,-1]
   return(map$col_name[which(map$display_name == input)])
@@ -12,17 +13,17 @@ psearch = function(input){
 
 #Start here!
 year_input = "2024-2025"
-stat_input = "3-Pointers Added"
+stat_input = "Value Added"
     stat_col = menu_map(stat_input)
 per_game = "Per Game"
-    #per_game = "Total"
+    per_game = "Total"
     pg_factor = ifelse(per_game == "Per Game",T,F)
 
 all_year = df %>% filter(Year == year_input)
 leaders_static = all_year[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static)[ncol(leaders_static)] = "Stat"
 if (pg_factor){
-  min_games = .75*(max(leaders_static$G))
+  min_games = gpl_df$gpl[which(gpl_df$Year == year_input)]
   leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
     arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
 } else{
@@ -44,12 +45,12 @@ leaders_display = leaders_static %>% select(Player, Team, G, Stat)
 names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
 # Compare to
-year_input_2 = "2017-2018"
+year_input_2 = "1994-1995"
 all_year_2 = df %>% filter(Year == year_input_2)
 leaders_static_2 = all_year_2[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
 if (pg_factor){
-  min_games = .75*(max(leaders_static_2$G))
+  min_games = gpl_df$gpl[which(gpl_df$Year == year_input_2)]
   leaders_static_2 = leaders_static_2 %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
     arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
 } else{
@@ -114,5 +115,5 @@ plot_3 = plot_3_in + geom_boxplot(data = summ %>% filter(r_u == 1), width = (1/1
 
 print(leaders_display)
 print(plot)
-print(plot_2)
 print(plot_3)
+print(plot_2)
