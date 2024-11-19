@@ -16,7 +16,7 @@ year_input = "2024-2025"
 stat_input = "Value Added"
     stat_col = menu_map(stat_input)
 per_game = "Per Game"
-    per_game = "Total"
+    #per_game = "Total"
     pg_factor = ifelse(per_game == "Per Game",T,F)
 
 all_year = df %>% filter(Year == year_input)
@@ -45,7 +45,7 @@ leaders_display = leaders_static %>% select(Player, Team, G, Stat)
 names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
 # Compare to
-year_input_2 = "1994-1995"
+year_input_2 = "2023-2024"
 all_year_2 = df %>% filter(Year == year_input_2)
 leaders_static_2 = all_year_2[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
@@ -63,10 +63,8 @@ leaders_static = leaders_static %>% select(-display_stat_single)
 comp_df = data.frame(leaders_static, Year = year_input) %>% rbind.data.frame(
   data.frame(leaders_static_2, Year = year_input_2)
 ) %>% as_tibble() %>% mutate(rk = paste0("#",rk)) %>% separate(Player, into = c("r_u","Player"),sep = "[\\d+]\\. ")
-comp_df$rk = factor(comp_df$rk, levels = rev(paste0("#",seq(1:10))))
-comp_df$r_u = 1
-comp_df = comp_df %>% mutate(disPlayer = paste0(Player," "))
-max_S = max(comp_df$Stat)
+comp_df$rk = factor(comp_df$rk, levels = rev(paste0("#",seq(1:10))));comp_df$r_u = 1
+comp_df = comp_df %>% mutate(disPlayer = paste0(Player," "));max_S = max(comp_df$Stat)
 comp_df = comp_df %>% mutate(disPlayer = ifelse(Stat < .3*(max_S),"",disPlayer)) %>% 
   separate(disPlayer, into = c("disPlayer","bbref"),sep = "\\(")
 

@@ -12,7 +12,7 @@ psearch = function(input){
 }
 
   pi1 = psearch("Devin Booker")#"Michael Jordan (jordami01)"
-  pi2 = psearch("Donovan Mitchell")#"LeBron James (jamesle01)"
+  pi2 = psearch("Ray Allen")#"LeBron James (jamesle01)"
 
 player_df = df %>% filter(Player %in% c(pi1,pi2))
 
@@ -42,7 +42,7 @@ p_static = p_static %>% separate(Player,into = c("disPlayer","bbref"),sep = " \\
 plot = p_static %>% 
     ggplot(aes(x = Season, y = Stat)) + 
     theme_bw() + 
-    #scale_color_manual(values = c(top2$Hex[1],"grey50"), name = NULL) +
+    scale_color_manual(values = c(top2$Hex[1],"grey50"), name = NULL) +
     scale_x_continuous(breaks = 1:max(p_static$Season)) +
     scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")),
                        limits = c(min(p_static$Stat)-(abs(min(p_static$Stat)/2)),max(p_static$Stat)+(max(p_static$Stat)/44))) +
