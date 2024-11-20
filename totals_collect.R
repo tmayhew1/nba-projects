@@ -4,8 +4,8 @@ exist_yn = ifelse(file.exists(today_file),T,F)
 if (!exist_yn){
     for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= as.numeric(format(Sys.Date(), "%Y")) & i!= as.numeric(format(Sys.Date(), "%Y"))+1){
-      print("Totals for this year exist already:")
-      print(i)
+      #print("Totals for this year exist already:")
+      #print(i)
     } else{
       url = paste0("https://www.basketball-reference.com/leagues/NBA_",i,"_totals.html")
       page = read_html(url)
@@ -31,7 +31,7 @@ if (!exist_yn){
         df_distinct = df %>% distinct(Player, Age,.keep_all = T) %>% filter(is.na(Team)==F)
         df = df_distinct %>% data.frame(key = player_keys[1:nrow(df_distinct)]) %>% select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything())
         df %>% write.csv(paste0("Totals/",i,".csv"))
-        print(i)
+        #print(i)
       }
     }
   }
@@ -53,7 +53,7 @@ if (!exist_yn){
                                  "ORB","DRB","STL","BLK","TOV")
     
     all_data = rbind.data.frame(all_data, year_df)
-    print(file)
+    #print(file)
   }
   
   all_data_standard = data.frame()
@@ -142,7 +142,6 @@ if (!exist_yn){
   ) %>% mutate(valueAdd = coalesce(valueAdd_1,valueAdd_2,valueAdd_3))
   
   all_data_standard %>% left_join(va_df %>% select(Player, Year, valueAdd), by = c("Year", "Player")) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
-  
 }
 
 exist_yn = ifelse(file.exists(today_file),T,F)

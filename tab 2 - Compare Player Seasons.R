@@ -11,8 +11,8 @@ psearch = function(input){
   return(new$Player %>% unique())
 }
 
-  pi1 = psearch("Devin Booker")#"Michael Jordan (jordami01)"
-  pi2 = psearch("Ray Allen")#"LeBron James (jamesle01)"
+  pi1 = psearch("Anthony Edwards")#"Michael Jordan (jordami01)"
+  pi2 = psearch("Dwyane Wade")#"LeBron James (jamesle01)"
 
 player_df = df %>% filter(Player %in% c(pi1,pi2))
 
