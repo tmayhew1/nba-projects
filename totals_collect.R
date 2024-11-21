@@ -1,6 +1,7 @@
 library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes)
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 exist_yn = ifelse(file.exists(today_file),T,F)
+#exist_yn = F
 if (!exist_yn){
     for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= as.numeric(format(Sys.Date(), "%Y")) & i!= as.numeric(format(Sys.Date(), "%Y"))+1){
@@ -105,7 +106,12 @@ if (!exist_yn){
                     ,laPTSperPoss = (PTS)/((X2PA + X3PA) + TOV + (FTA/2.1))
                     ,laORBrate = (ORB/TRB)
                     ,laDRBrate = (DRB/TRB)
+                    ,la3P. = (X3P/X3PA)
+                    ,la2P. = (X2P/X2PA)
+                    ,laFT. = (FT/FTA)
     )
+  
+  summary %>% write.csv("Complete Data/avgsSummary.csv")
   
   # build a model to predict points per possession based on PTS per minute and TRB per minute
   summary = summary %>% mutate(model_set = ifelse(is.na(laPTSperPoss),"test","train"))

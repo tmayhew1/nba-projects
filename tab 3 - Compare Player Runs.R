@@ -15,13 +15,13 @@ lsearch = function(player,year){
   return(paste0("https://www.basketball-reference.com/players/",letter,"/",key,"/gamelog/",year))
 }
 
-p1_input = "Anthony Edwards"
-  date_input_1_start = as.Date("2023-11-20")
-  date_input_1_end = Sys.Date()
+p1_input = "Stephen Curry"
+  date_input_1_start = as.Date("2015-10-01")
+  date_input_1_end = as.Date("2016-06-01")#Sys.Date()
   
-p2_input = "Dwyane Wade"
-  date_input_2_start = as.Date("2005-11-20")
-  date_input_2_end = (as.Date("2006-11-20"))#Sys.Date()
+p2_input = "Michael Jordan"
+  date_input_2_start = as.Date("1988-10-01")
+  date_input_2_end = (as.Date("1989-07-01"))#Sys.Date()
   
 # Start data collect
 years_1 = unique(c(as.double(str_split(date_input_1_start,"-")[[1]][1]),as.double(str_split(date_input_1_end,"-")[[1]][1]),as.double(str_split(date_input_1_end,"-")[[1]][1])+1))
@@ -36,9 +36,15 @@ for (y in years_1[1]:years_1[2]){
     print("This year's page is empty:")
     print(y)
   } else{
-    reg_games_1 = data.raw[[8]] %>% 
-      select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc, `+/-`)
-    reg_games_1 = reg_games_1 %>% set_names(nm = c("G", "Date", "Tm", "MP", "FG", "FGA", "X3P", "X3PA", "FT", "FTA", "ORB", "DRB", "TRB", "AST", "STL", "BLK", "TOV", "PF", "PTS", "GmSc", "PlusMinus"))
+    if (length(which(names(data.raw[[8]])=="+/-"))==0){
+      reg_games_1 = data.raw[[8]] %>% select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc)
+      reg_games_1 = reg_games_1 %>% mutate(PlusMinus = 0)
+      
+    } else{
+      reg_games_1 = data.raw[[8]] %>% 
+        select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc, `+/-`)
+      reg_games_1 = reg_games_1 %>% set_names(nm = c("G", "Date", "Tm", "MP", "FG", "FGA", "X3P", "X3PA", "FT", "FTA", "ORB", "DRB", "TRB", "AST", "STL", "BLK", "TOV", "PF", "PTS", "GmSc", "PlusMinus"))
+    }
     reg_games_1 = reg_games_1 %>% filter(!is.na(as.double(FG))) %>% separate(col = MP, into = c("MP", "SP"),sep = "\\:") %>% mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP) %>% data.frame(Player = p1_input)
     p1_df = p1_df %>% rbind.data.frame(reg_games_1) %>% mutate(Date = as.Date(Date)) %>% as_tibble()
   }
@@ -51,9 +57,15 @@ for (y in years_2[1]:years_2[2]){
     print("This year's page is empty:")
     print(y)
   } else{
-    reg_games_2 = data.raw[[8]] %>% 
-      select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc, `+/-`)
-    reg_games_2 = reg_games_2 %>% set_names(nm = c("G", "Date", "Tm", "MP", "FG", "FGA", "X3P", "X3PA", "FT", "FTA", "ORB", "DRB", "TRB", "AST", "STL", "BLK", "TOV", "PF", "PTS", "GmSc", "PlusMinus"))
+    if (length(which(names(data.raw[[8]])=="+/-"))==0){
+      reg_games_2 = data.raw[[8]] %>% select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc)
+      reg_games_2 = reg_games_2 %>% mutate(PlusMinus = 0)
+      
+    } else{
+      reg_games_2 = data.raw[[8]] %>% 
+        select(G, Date, Tm, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc, `+/-`)
+      reg_games_2 = reg_games_2 %>% set_names(nm = c("G", "Date", "Tm", "MP", "FG", "FGA", "X3P", "X3PA", "FT", "FTA", "ORB", "DRB", "TRB", "AST", "STL", "BLK", "TOV", "PF", "PTS", "GmSc", "PlusMinus"))
+    }
     reg_games_2 = reg_games_2 %>% filter(!is.na(as.double(FG))) %>% separate(col = MP, into = c("MP", "SP"),sep = "\\:") %>% mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP) %>% data.frame(Player = p2_input)
     p2_df = p2_df %>% rbind.data.frame(reg_games_2) %>% mutate(Date = as.Date(Date)) %>% as_tibble()
   }
@@ -63,13 +75,16 @@ p1_df = p1_df %>% filter(Date >= date_input_1_start, Date <= date_input_1_end)
 p2_df = p2_df %>% filter(Date >= date_input_2_start, Date <= date_input_2_end)
 p1_df = p1_df %>% mutate(G = 1:nrow(p1_df)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df))
 
-roll_avg_input = "20"
+roll_avg_input = "15"
 #stat_input = "Plus/Minus"
 stat_input = "Game Score"
 stat_col = menu_map(stat_input)
 
 cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-
+cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG, FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
+cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(0.357))*(X3PA),
+               X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(0.496))*(X2PA),
+               FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(0.762))*(FTA))
 top2 = cdf %>% arrange(Player) %>% distinct(Player, .keep_all = T)
 static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
 names(static)[ncol(static)] = "Stat"
@@ -79,6 +94,9 @@ ra = ifelse(roll_avg_input == "-",1,as.double(roll_avg_input))
 if (ra==1){
   static$Stat_ra = static$Stat
 } else{
+  
+  # next: if the input is a percentage, add totals up instead of averaging!
+  
   static$Stat_ra = NA
   for (i in 1:nrow(static)){
     if (static$G[i]<ra){
@@ -113,7 +131,8 @@ plot_3_in =
 # Extract the data from the ggplot object 
 plot_data <- ggplot_build(plot_3_in)$data[[1]]
 plot_3 = plot_3_in + theme_bw() +
-  scale_y_continuous("Normalized Density") + ggtitle(label = "Distribution Comparison") +
+  scale_y_continuous("Normalized Density") + ggtitle("Distribution Comparison", subtitle = "  Based on random 5-game samples") +
   scale_x_continuous(name = stat_input) +
   scale_color_manual("", values = c(top2$Hex[1],"grey50")) +
-  scale_fill_manual("", values = c(top2$Hex[1],"grey50")) + theme(legend.position = "top")
+  scale_fill_manual("", values = c(top2$Hex[1],"grey50")) + 
+  theme(legend.position = "top", plot.subtitle = element_text(size = 8, face = "italic"))

@@ -11,13 +11,13 @@ psearch = function(input){
   return(new$Player %>% unique())
 }
 
-  pi1 = psearch("Anthony Edwards")#"Michael Jordan (jordami01)"
-  pi2 = psearch("Dwyane Wade")#"LeBron James (jamesle01)"
+  pi1 = psearch("Stephen Curry")#"Michael Jordan (jordami01)"
+  pi2 = psearch("Michael Jordan")#"LeBron James (jamesle01)"
 
 player_df = df %>% filter(Player %in% c(pi1,pi2))
 
 # specific statistic - across seasons ("By Statistic")
-  stat_input = "Value Added"
+  stat_input = "Efficiency Points Added"
   stat_col = menu_map(stat_input)
   per_game = "Per Game"
   #per_game = "Total"
@@ -49,6 +49,7 @@ plot = p_static %>%
     theme(legend.position = "top") + geom_point(aes(color = disPlayer), size = 1) + geom_line(aes(x = Season, y = Stat, color = disPlayer), alpha = I(.2)) + geom_text(aes(x = Season, y = Stat, label = Year, color = disPlayer), size = 2, vjust = 0, nudge_y = (max(p_static$Stat)-min(p_static$Stat))/80, show.legend = F)
   
 plot
+player_df %>% transmute(Year, Player, G, PTS/G, TRB/G, AST/G, `STK/G` = (STL+BLK)/G, `effPTS/G` = PTSAdd/G, `vA/G` = valueAdd/G) %>% arrange(desc(`vA/G`))
 
 # general - ("By Season")
   year_input = "2024-2025"
