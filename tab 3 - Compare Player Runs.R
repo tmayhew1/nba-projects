@@ -77,32 +77,46 @@ p1_df = p1_df %>% mutate(G = 1:nrow(p1_df)); p2_df = p2_df %>% mutate(G = 1:nrow
 
 roll_avg_input = "15"
 #stat_input = "Plus/Minus"
-stat_input = "Game Score"
+stat_input = "3-Pointers Added"
 stat_col = menu_map(stat_input)
 
 cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
 cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG, FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(0.357))*(X3PA),
-               X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(0.496))*(X2PA),
-               FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(0.762))*(FTA))
-top2 = cdf %>% arrange(Player) %>% distinct(Player, .keep_all = T)
-static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
-names(static)[ncol(static)] = "Stat"
-static = static %>% mutate(Stat = as.double(Stat))
-
+cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(0.357))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(0.496))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(0.762))*(FTA))
+top_color = cdf %>% arrange(Player) %>% head(1)
 ra = ifelse(roll_avg_input == "-",1,as.double(roll_avg_input))
-if (ra==1){
-  static$Stat_ra = static$Stat
+
+# modify Stat columns if stat_input is a percent!
+if (grepl("[P|p]ercentage",stat_input)){
+  static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
+  names(static)[(ncol(static)-1):ncol(static)] = c("Make", "Att")
+  static$Stat = static$Make/static$Att
+  if (ra==1){
+    static$Stat_ra = static$Stat
+  } else{
+    static$Stat_ra = NA
+    for (i in 1:nrow(static)){
+      if (static$G[i]<ra){
+        static$Stat_ra[i] = NA
+      } else{
+        static$Stat_ra[i] = (sum(static$Make[(i-ra+1):(i)]))/((sum(static$Att[(i-ra+1):(i)])))
+      }
+    }
+  }
 } else{
-  
-  # next: if the input is a percentage, add totals up instead of averaging!
-  
-  static$Stat_ra = NA
-  for (i in 1:nrow(static)){
-    if (static$G[i]<ra){
-      static$Stat_ra[i] = NA
-    } else{
-      static$Stat_ra[i] = mean(static$Stat[(i-ra+1):(i)])
+  static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
+  names(static)[ncol(static)] = "Stat"
+  static = static %>% mutate(Stat = as.double(Stat))
+  if (ra==1){
+    static$Stat_ra = static$Stat
+  } else{
+    static$Stat_ra = NA
+    for (i in 1:nrow(static)){
+      if (static$G[i]<ra){
+        static$Stat_ra[i] = NA
+      } else{
+        static$Stat_ra[i] = mean(static$Stat[(i-ra+1):(i)])
+      }
     }
   }
 }
@@ -112,7 +126,7 @@ static_line = static_line %>% mutate(dateDisp = ifelse((G %in% c(ra,max(static_l
 
 plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
   geom_line() + scale_y_continuous(name = stat_input) +
-  scale_color_manual(values = c(top2$Hex[1],"grey50")) +
+  scale_color_manual(values = c(top_color$Hex[1],"grey50")) +
   theme(legend.position = "top") + scale_linetype_manual(values = c("solid", "dashed")) +
   scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
 plot
