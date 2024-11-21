@@ -25,24 +25,22 @@ names(leaders_static)[ncol(leaders_static)] = "Stat"
 if (pg_factor){
   min_games = gpl_df$gpl[which(gpl_df$Year == year_input)]
   leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
-    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
+    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
 } else{
   leaders_static = leaders_static %>% 
-    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
+    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
 }
+leaders_static = leaders_static %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(",remove = F) %>% select(-bbref)
+leaders_static = leaders_static %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
+leaders_static$rk = factor(leaders_static$rk, levels = rev(paste0("#",seq(1:10))))
 
-leaders_static$Player = factor(leaders_static$Player, levels = rev(leaders_static$Player))
-leaders_static = leaders_static %>% mutate(display_stat_single = paste0(display_stat, " "))
-
-plot = leaders_static %>% ggplot(aes(x = Player, y = Stat, fill = Hex, alpha = I(3/5))) +
-  geom_bar(stat = "identity", color = "black", aes(fill = Hex)) + theme_bw() + coord_flip() +
+plot = leaders_static %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
+  geom_bar(stat = "identity", color = "black", aes(fill = Hex), alpha = I(3/5)) + theme_bw() + coord_flip() +
   scale_fill_identity() + theme(legend.position = "none") +
   scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(leaders_static$Stat)+((max(leaders_static$Stat)/9.5)))) + scale_x_discrete(name = "") +
-  theme(axis.text.y = element_text(hjust = 0,size=6,face="bold")) +
-  geom_text(aes(label = display_stat_single,fontface = "bold",), hjust = 1, size = 3) + 
+  geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) + 
+  geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
   ggtitle(label = "", subtitle = paste0(year_input, " Season Leaders"))
-leaders_display = leaders_static %>% select(Player, Team, G, Stat)
-names(leaders_display)[ncol(leaders_display)] = paste0(ifelse(pg_factor,"Per Game ","Total "), stat_input)
 
 # Compare to
 year_input_2 = "2023-2024"
@@ -52,21 +50,21 @@ names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
 if (pg_factor){
   min_games = gpl_df$gpl[which(gpl_df$Year == year_input_2)]
   leaders_static_2 = leaders_static_2 %>% mutate(Stat = Stat/G) %>% filter(G >= min_games) %>%  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
-    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
+    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
 } else{
   leaders_static_2 = leaders_static_2 %>% 
-    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(Player = paste0(rk,". ",Player), display_stat = paste0(" ",round(Stat,3)))
+    arrange(desc(Stat)) %>% head(10) %>% data.frame(rk = 1:10) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
 }
+leaders_static_2 = leaders_static_2 %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(", remove = F) %>% select(-bbref)
+leaders_static_2 = leaders_static_2 %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
+leaders_static_2$rk = factor(leaders_static$rk, levels = rev(paste0("#",seq(1:10))))
 
 # remove extra formatting column from leaders_static that we don't need!
-leaders_static = leaders_static %>% select(-display_stat_single)
 comp_df = data.frame(leaders_static, Year = year_input) %>% rbind.data.frame(
   data.frame(leaders_static_2, Year = year_input_2)
-) %>% as_tibble() %>% mutate(rk = paste0("#",rk)) %>% separate(Player, into = c("r_u","Player"),sep = "[\\d+]\\. ")
-comp_df$rk = factor(comp_df$rk, levels = rev(paste0("#",seq(1:10))));comp_df$r_u = 1
-comp_df = comp_df %>% mutate(disPlayer = paste0(Player," "));max_S = max(comp_df$Stat)
-comp_df = comp_df %>% mutate(disPlayer = ifelse(Stat < .3*(max_S),"",disPlayer)) %>% 
-  separate(disPlayer, into = c("disPlayer","bbref"),sep = "\\(")
+) %>% as_tibble()
+comp_df$rk = factor(comp_df$rk, levels = rev(paste0("#",seq(1:10))));comp_df$r_u = 1;max_S = max(comp_df$Stat)
+comp_df = comp_df %>% mutate(disPlayer = ifelse(Stat < .3*(max_S),"",disPlayer))
 
 plot_2 = comp_df %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
   facet_grid(Year ~ .) + 
@@ -111,7 +109,6 @@ plot_3 = plot_3_in + geom_boxplot(data = summ %>% filter(r_u == 1), width = (1/1
   scale_y_continuous("Normalized Density") + ggtitle(label = "Distribution Comparison") +
   scale_x_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")))
 
-print(leaders_display)
 print(plot)
 print(plot_3)
 print(plot_2)
