@@ -1,4 +1,4 @@
-library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes)
+library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(data.table)
 source("totals_collect.R") # totals_collect.R must be run!
 df = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
 gpl_df = df %>% group_by(Year) %>% summarise(.groups = "drop", max_G = max(G)) %>% mutate(gpl = ifelse(max_G > 50,.75*max_G,.6*max_G)) %>% select(-max_G)
@@ -10,10 +10,33 @@ psearch = function(input){
   new = df %>% filter(grepl(input,Player))
   return(new$Player %>% unique())
 }
+lesearch = function(input_df,input_p,gp_input=""){
+  gpl_control = input_df %>% arrange(desc(valueAdd/G)) %>% inner_join(gpl_df,by = join_by(Year)) %>% filter(G > ifelse(gp_input=="",gpl,gp_input)) %>% select(-gpl) 
+  input_df = gpl_control %>% mutate(Rk = 1:nrow(gpl_control))
+  input_df = input_df %>% mutate(vaPG = valueAdd/G)
+  m = mean(input_df$vaPG);sd = sd(input_df$vaPG);input_df$z_s = (input_df$vaPG-m)/sd
+  output = input_df[(max(((which(grepl(pattern = input_p,x = input_df$Player)))-5),1)):(min(((which(grepl(pattern = input_p,x = input_df$Player)))+5),nrow(input_df))),]
+  output = output %>% transmute(Rk,Player,Team,G,Pos,MP = MP/G,PTS = PTS/G, TRB = TRB/G, AST = AST/G, X3P. = X3P/X3PA, X3PA = X3PA/G, FG. = FG/FGA, FGA = FGA/G, STK = (STL+BLK)/G, vaPG, z_s)
+  for (i in 1:nrow(output)){
+    laPTS = sum(input_df$PTS)/sum(input_df$MP);output$PTS[i] = paste0(round(as.double(output$PTS[i]),2),"(",ifelse(as.double(output$PTS[i])/output$MP[i]>laPTS,"+","-"),")")
+    laTRB = sum(input_df$TRB)/sum(input_df$MP);output$TRB[i] = paste0(round(as.double(output$TRB[i]),2),"(",ifelse(as.double(output$TRB[i])/output$MP[i]>laTRB,"+","-"),")")
+    laAST = sum(input_df$AST)/sum(input_df$MP);output$AST[i] = paste0(round(as.double(output$AST[i]),2),"(",ifelse(as.double(output$AST[i])/output$MP[i]>laAST,"+","-"),")")
+    la3P = sum(input_df$X3P)/sum(input_df$X3PA);output$X3P.[i] = paste0(round(as.double(output$X3P.[i]),3),"(",ifelse(output$X3P.[i]>la3P,"+","-"),")")
+    laFG = sum(input_df$FG)/sum(input_df$FGA);output$FG.[i] = paste0(round(as.double(output$FG.[i]),3),"(",ifelse(output$FG.[i]>laFG,"+","-"),")")
+    laSTK = (sum(input_df$STL)+sum(input_df$BLK))/(sum(input_df$MP));output$STK[i] = paste0(round(as.double(output$STK[i]),2),"(",ifelse(as.double(output$STK[i])/output$MP[i]>laSTK,"+","-"),")")
+  }
+  output
+}
+tesearch = function(input_df,input_t){
+  gpl_control = input_df %>% arrange(desc(valueAdd/G)) #%>% inner_join(gpl_df,by = join_by(Year)) %>% filter(G > gpl) %>% select(-gpl) 
+  input_df = gpl_control %>% mutate(Rk = 1:nrow(gpl_control))
+  output = input_df[which(input_df$Team==input_t),] %>% arrange(desc(MP*G)) %>% head(10)
+  output %>% transmute(Rk,Player,Team,G,MP = MP/G,PTS = PTS/G, TRB = TRB/G, AST = AST/G, X3P. = X3P/X3PA, X3PA = X3PA/G, FG. = FG/FGA, FGA = FGA/G, STK = (STL+BLK)/G, vaPG = valueAdd/G) %>% arrange(desc(vaPG))
+}
 
 #Start here!
 year_input = "2024-2025"
-stat_input = "Value Added"
+stat_input = "3-Pointers Added"
     stat_col = menu_map(stat_input)
 per_game = "Per Game"
     #per_game = "Total"
@@ -40,10 +63,10 @@ plot = leaders_static %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
   scale_y_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")), limits = c(0,max(leaders_static$Stat)+((max(leaders_static$Stat)/9.5)))) + scale_x_discrete(name = "") +
   geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) + 
   geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
-  ggtitle(label = "", subtitle = paste0(year_input, " Season Leaders"))
+  ggtitle(label = "", subtitle = ifelse(pg_factor,paste0(year_input, " Season Leaders (min. ",(floor(gpl_df[nrow(gpl_df),]$gpl))+1," games)"),paste0(year_input, " Season Leaders ")))
 
 # Compare to
-year_input_2 = "2023-2024"
+year_input_2 = "2004-2005"
 all_year_2 = df %>% filter(Year == year_input_2)
 leaders_static_2 = all_year_2[,c("Player","Team", "Hex","G",stat_col)]
 names(leaders_static_2)[ncol(leaders_static_2)] = "Stat"
@@ -109,6 +132,15 @@ plot_3 = plot_3_in + geom_boxplot(data = summ %>% filter(r_u == 1), width = (1/1
   scale_y_continuous("Normalized Density") + ggtitle(label = "Distribution Comparison") +
   scale_x_continuous(name = paste0(stat_input,ifelse(pg_factor," (Per Game) "," (Total) ")))
 
-print(plot)
 print(plot_3)
-print(plot_2)
+print(plot)
+#print(plot_2)
+
+all_year %>% lesearch("LeBron James")
+all_year %>% tesearch("CLE")
+
+# Compare 3-Pointers Added
+#p1 = psearch("CJ McCollum")
+#p2 = psearch("Stephen Curry")
+#all_year %>% filter(Player %in% c(p1,p2)) %>% transmute(Player, Team, X3PAdd, X3PAdd/G, X3P., X3PA/G) %>% arrange(desc(`X3PAdd/G`))
+

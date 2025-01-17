@@ -1,38 +1,44 @@
 library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes)
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 exist_yn = ifelse(file.exists(today_file),T,F)
-#exist_yn = F
 if (!exist_yn){
     for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
-    if (file.exists(paste0("Totals/",i,".csv")) & i!= as.numeric(format(Sys.Date(), "%Y")) & i!= as.numeric(format(Sys.Date(), "%Y"))+1){
-      #print("Totals for this year exist already:")
-      #print(i)
+    if (file.exists(paste0("Totals/",i,".csv")) & i!= (as.numeric(format(Sys.Date(), "%Y"))) & i!= (as.numeric(format(Sys.Date(), "%Y"))+1)){
+      # print("Totals for this year exist already:")
+      # print(i)
     } else{
       url = paste0("https://www.basketball-reference.com/leagues/NBA_",i,"_totals.html")
-      page = read_html(url)
-      data.raw = html_table(page, fill=TRUE)
-      if (length(data.raw)==0){
-        print("This year's page is empty:")
-        print(i)
-      } else{
-        df = data.raw[[1]] %>% as_tibble()
-        links = page %>% html_nodes("td a") %>% html_attr("href"); players = c(); teams = c()
-        for (link in links){
-          match = grepl("players\\/[a-z]\\/", link)
-          if (match){
-            player_key = str_split(str_split(link,"players\\/[a-z]\\/")[[1]][2],"\\.html")[[1]][1]
-            players = players %>% c(player_key)
-          } else{
-            team_key = str_split(str_split(link,"teams\\/")[[1]][2],"\\/")[[1]][1]
-            teams = teams %>% c(team_key)
+      url_status = GET(url) %>% status_code()
+      if (url_status == 200){
+        page = read_html(url)
+        data.raw = html_table(page, fill=TRUE)
+        if (length(data.raw)==0){
+          # print("This year's page is empty:")
+          # print(i)
+        } else{
+          df = data.raw[[1]] %>% as_tibble()
+          links = page %>% html_nodes("td a") %>% html_attr("href"); players = c(); teams = c()
+          for (link in links){
+            match = grepl("players\\/[a-z]\\/", link)
+            if (match){
+              player_key = str_split(str_split(link,"players\\/[a-z]\\/")[[1]][2],"\\.html")[[1]][1]
+              players = players %>% c(player_key)
+            } else{
+              team_key = str_split(str_split(link,"teams\\/")[[1]][2],"\\/")[[1]][1]
+              teams = teams %>% c(team_key)
+            }
           }
+          player_keys = unique(players);team_keys = unique(teams)
+          df$Team = factor(df$Team, levels = c("5TM","4TM","3TM","2TM",team_keys[order(team_keys)]))
+          df_distinct = df %>% distinct(Player, Age,.keep_all = T) %>% filter(is.na(Team)==F)
+          df = df_distinct %>% data.frame(key = player_keys[1:nrow(df_distinct)]) %>% select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything())
+          df %>% write.csv(paste0("Totals/",i,".csv"))
+          # print("Data collected for:")
+          # print(i)
         }
-        player_keys = unique(players);team_keys = unique(teams)
-        df$Team = factor(df$Team, levels = c("5TM","4TM","3TM","2TM",team_keys[order(team_keys)]))
-        df_distinct = df %>% distinct(Player, Age,.keep_all = T) %>% filter(is.na(Team)==F)
-        df = df_distinct %>% data.frame(key = player_keys[1:nrow(df_distinct)]) %>% select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything())
-        df %>% write.csv(paste0("Totals/",i,".csv"))
-        #print(i)
+      } else{
+        # print("Web page does not exist for:")
+        # print(i)
       }
     }
   }

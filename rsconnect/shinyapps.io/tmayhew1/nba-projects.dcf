@@ -1,0 +1,12 @@
+name: nba-projects
+title: nba-projects
+username: tmayhew1
+account: tmayhew1
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13722462
+bundleId: 9662656
+url: https://tmayhew1.shinyapps.io/nba-projects/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

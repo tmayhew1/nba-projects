@@ -11,16 +11,16 @@ psearch = function(input){
   return(new$Player %>% unique())
 }
 
-  pi1 = psearch("Stephen Curry")#"Michael Jordan (jordami01)"
-  pi2 = psearch("Michael Jordan")#"LeBron James (jamesle01)"
+  pi1 = psearch("Buddy Hield")#"Michael Jordan (jordami01)"
+  pi2 = psearch("Klay Thompson")#"LeBron James (jamesle01)"
 
 player_df = df %>% filter(Player %in% c(pi1,pi2))
 
 # specific statistic - across seasons ("By Statistic")
-  stat_input = "Efficiency Points Added"
+  stat_input = "3-Pointers Added"
   stat_col = menu_map(stat_input)
   per_game = "Per Game"
-  #per_game = "Total"
+    #per_game = "Total"
   pg_factor = ifelse(per_game == "Per Game",T,F)
 
 p_static = player_df[,c("Player","Team", "Year", "Hex","G",stat_col)]
@@ -71,6 +71,4 @@ py_toplot = py_sum %>% pivot_longer(cols = G:PTSAddpG,
 sample_plt = py_toplot %>% ggplot(aes(x = variable, y = value, fill = Player)) + 
   geom_bar(stat = 'identity', position = "dodge") +
   coord_flip()
-
-
 
