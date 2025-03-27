@@ -1,0 +1,31 @@
+,col_name,display_name,category
+1,X2P.,2-Point Percentage,shooting
+3,X2PA,2-Pointers Attempted,shooting
+4,X2P,2-Pointers Made,shooting
+5,X3P.,3-Point Percentage,shooting
+7,X3PA,3-Pointers Attempted,shooting
+8,X3P,3-Pointers Made,shooting
+16,FG.,Field Goal Percentage,shooting
+18,FGA,Field Goals Attempted,shooting
+19,FG,Field Goals Made,shooting
+20,FT.,Free Throw Percentage,shooting
+22,FTA,Free Throws Attempted,shooting
+23,FT,Free Throws Made,shooting
+26,MP,Minutes Played,volume
+27,ORB,Offensive Rebounds,volume
+14,DRB,Defensive Rebounds,volume
+28,PF,Personal Fouls,volume
+12,BLK,Blocks,volume
+33,STL,Steals,volume
+34,TOV,Turnovers,volume
+10,AST,Assists,volume
+32,TRB,Rebounds,volume
+30,PTS,Points,shooting
+21,FTAdd,Free Throws Added,shooting
+2,X2PAdd,2-Pointers Added,shooting
+6,X3PAdd,3-Pointers Added,shooting
+69,fPTS2,Sleeper Fantasy Points,volume
+36,fPTS,Fantasy Points,volume
+38,GmSc,Game Score,volume
+39,PlusMinus,Plus/Minus,volume
+37,valueAdd,Value Added,volume

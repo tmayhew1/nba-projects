@@ -18,12 +18,12 @@ lsearch = function(player,year){
 
 ### Player/Year inputs:
 if (T){
-  p1_input = "Dorian Finney-Smith"
-  date_input_1_start = as.Date(Sys.Date()-260) #260
+  p1_input = "Max Christie"
+  date_input_1_start = as.Date(Sys.Date()-21) #260
   date_input_1_end = as.Date(Sys.Date())
     
-  p2_input = "Jalen Brunson"
-  date_input_2_start = as.Date(Sys.Date()-260) #260
+  p2_input = "Luka Doncic"
+  date_input_2_start = as.Date(Sys.Date()-21) #260
   date_input_2_end = as.Date(Sys.Date())
   
   # Start data collect
@@ -149,27 +149,27 @@ static_line = static_line %>% mutate(dateDisp = ifelse((G %in% c(ra,max(static_l
     theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
     scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
     
-sim_p1 = c();sim_p2 = c()
-for (j in 1:10000){sim_p1 = c(sim_p1,mean(sample(x = static$Stat[which(static$Player==p1_input)],size = 5,replace = F)))}
-for (k in 1:10000){sim_p2 = c(sim_p2,mean(sample(x = static$Stat[which(static$Player==p2_input)],size = 5,replace = F)))}
-sims = rbind.data.frame(data.frame(sim = sim_p1,Player = p1_input), data.frame(sim = sim_p2,Player = p2_input)) %>% as_tibble()
-# add a sample size (games played) for context
-sims = sims %>% mutate(Player = ifelse(Player==p1_input,paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_input)])),")"),paste0(Player," (n=",(length(static$Stat[which(static$Player==p2_input)])),")")))
-
-plot_3_in = 
-  sims %>% ggplot(aes(x = sim, color = Player)) + 
-  geom_histogram(alpha = I(1/4), position = "identity", bins = 30, aes(y = ..density.., fill = Player)) +
-  geom_density(alpha = I(4/5))
-# Extract the data from the ggplot object 
-plot_data <- ggplot_build(plot_3_in)$data[[1]]
-plot_3 = plot_3_in + theme_bw() +
-  scale_y_continuous("Normalized Density") + ggtitle("Distribution Comparison", subtitle = "  Based on random 5-game samples") +
-  scale_x_continuous(name = stat_input) +
-  scale_color_manual("", values = c(top_color$Hex[1],"grey50")) +
-  scale_fill_manual("", values = c(top_color$Hex[1],"grey50")) + 
-  theme(legend.position = "top", plot.subtitle = element_text(size = 8, face = "italic"))
-
-grid.arrange(plot_3, plot, ncol = 2)
+# sim_p1 = c();sim_p2 = c()
+# for (j in 1:10000){sim_p1 = c(sim_p1,mean(sample(x = static$Stat[which(static$Player==p1_input)],size = 5,replace = F)))}
+# for (k in 1:10000){sim_p2 = c(sim_p2,mean(sample(x = static$Stat[which(static$Player==p2_input)],size = 5,replace = F)))}
+# sims = rbind.data.frame(data.frame(sim = sim_p1,Player = p1_input), data.frame(sim = sim_p2,Player = p2_input)) %>% as_tibble()
+# # add a sample size (games played) for context
+# sims = sims %>% mutate(Player = ifelse(Player==p1_input,paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_input)])),")"),paste0(Player," (n=",(length(static$Stat[which(static$Player==p2_input)])),")")))
+# 
+# plot_3_in = 
+#   sims %>% ggplot(aes(x = sim, color = Player)) + 
+#   geom_histogram(alpha = I(1/4), position = "identity", bins = 30, aes(y = ..density.., fill = Player)) +
+#   geom_density(alpha = I(4/5))
+# # Extract the data from the ggplot object 
+# plot_data <- ggplot_build(plot_3_in)$data[[1]]
+# plot_3 = plot_3_in + theme_bw() +
+#   scale_y_continuous("Normalized Density") + ggtitle("Distribution Comparison", subtitle = "  Based on random 5-game samples") +
+#   scale_x_continuous(name = stat_input) +
+#   scale_color_manual("", values = c(top_color$Hex[1],"grey50")) +
+#   scale_fill_manual("", values = c(top_color$Hex[1],"grey50")) + 
+#   theme(legend.position = "top", plot.subtitle = element_text(size = 8, face = "italic"))
+# 
+# grid.arrange(plot_3, plot, ncol = 2)
 
 cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date, PTS, TRB, AST, BLK, STL, X3PAdd, X2PFTAdd = X2PAdd + FTAdd, valueAdd) %>% head(3)
 cdf %>% group_by(Player) %>% summarise(.groups = "drop", G = n(), MP = mean(MP), PTS = mean(PTS), TRB = mean(TRB), AST = mean(AST), X3P. = sum(X3P)/sum(X3PA), X3PA = mean(X3PA), FG. = sum(FG)/sum(FGA), STK = mean(STL+BLK))

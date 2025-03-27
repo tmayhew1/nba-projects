@@ -2,7 +2,7 @@ library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 exist_yn = ifelse(file.exists(today_file),T,F)
 if (!exist_yn){
-    for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
+  for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= (as.numeric(format(Sys.Date(), "%Y"))) & i!= (as.numeric(format(Sys.Date(), "%Y"))+1)){
       # print("Totals for this year exist already:")
       # print(i)
@@ -42,14 +42,13 @@ if (!exist_yn){
       }
     }
   }
-  
   totals_files = list.files(path = "Totals/", pattern = 'csv')
   all_data = data.frame(); year_df = data.frame()
   for (file in totals_files){
     year_df = read.csv(paste0("Totals/",file))[,-1] %>% as_tibble()
-    new_cols = c("GS","MP","X3P","X3PA","X3P.","ORB","DRB","TRB","STL","BLK","TOV")
+    new_cols = c("GS","MP","X3P","X3PA","X3P.","ORB","DRB","TRB","STL","BLK","TOV","X2P","X2PA","X2P.","eFG.")
     for (co in new_cols){
-      if ((co %in% names(year_df)) == F){
+      if (!(co %in% names(year_df))){
         year_df = year_df %>% data.frame(co = NA)
         names(year_df)[ncol(year_df)] = co
       }
@@ -62,6 +61,9 @@ if (!exist_yn){
     all_data = rbind.data.frame(all_data, year_df)
     #print(file)
   }
+  all_data = all_data %>% mutate(X2P = ifelse(is.na(X2P),FG,X2P),
+                                 X2PA = ifelse(is.na(X2PA),FGA,X2PA),
+                                 X2P. = round(X2P/X2PA,3))
   
   all_data_standard = data.frame()
   for (y in unique(all_data$Year)[order(unique(all_data$Year))]){
@@ -154,7 +156,10 @@ if (!exist_yn){
   ) %>% mutate(valueAdd = coalesce(valueAdd_1,valueAdd_2,valueAdd_3))
   
   all_data_standard %>% left_join(va_df %>% select(Player, Year, valueAdd), by = c("Year", "Player")) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
+
 }
 
 exist_yn = ifelse(file.exists(today_file),T,F)
 print(paste0(Sys.Date()," - File created: ",exist_yn))
+
+# Start with 1986

@@ -11,8 +11,6 @@
 20,FT.,Free Throw Percentage
 22,FTA,Free Throws Attempted
 23,FT,Free Throws Made
-24,G,Games Played
-25,GS,Games Started
 26,MP,Minutes Played
 27,ORB,Offensive Rebounds
 14,DRB,Defensive Rebounds
@@ -26,8 +24,4 @@
 21,FTAdd,Free Throws Added
 2,X2PAdd,2-Pointers Added
 6,X3PAdd,3-Pointers Added
-69,fPTS2,Sleeper Fantasy Points
-36,fPTS,Fantasy Points
-38,GmSc,Game Score
-39,PlusMinus,Plus/Minus
 37,valueAdd,Value Added
