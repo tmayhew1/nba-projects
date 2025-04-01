@@ -5,7 +5,7 @@ df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complet
 gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = 0.75*max(G))
 df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
 df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
-df$Player = iconv(df$Player, to = "UTF-8")
+df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
 
 lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything())
 menu_map = function(input){
@@ -65,8 +65,8 @@ ui =
                                      column(
                                        width = 6,
                                        fluidRow(
-                                         column(6, selectInput("p1_input","Player 1:",choices = df$Player[which(df$Year=="2024-2025")],selected = df$Player[which(df$Year=="2024-2025")][1]), style = "font-size: 12px;"),
-                                         column(6, selectInput("p2_input","Player 2:",choices = c("-",df$Player[which(df$Year=="2024-2025")]),selected = "-"), style = "font-size: 12px;"),
+                                         column(6, selectInput("p1_input","Player 1:",choices = df$Player[which(df$Year==maxYr)],selected = df$Player[which(df$Year==maxYr)][1]), style = "font-size: 12px;"),
+                                         column(6, selectInput("p2_input","Player 2:",choices = c("-",df$Player[which(df$Year==maxYr)]),selected = "-"), style = "font-size: 12px;"),
                                        ),
                                        fluidRow(
                                          column(4, selectInput("stat_input", "Statistic of Interest:", choices = rev(read.csv("Complete Data/menu_options.csv")[, ncol(read.csv("Complete Data/menu_options.csv"))]), selected = "Value Added"), style = "font-size: 12px;")
@@ -99,7 +99,7 @@ ui =
                                      column(
                                        width = 12,
                                        fluidRow(
-                                         column(3, selectInput("year_input","Season:",choices = rev(unique(sort(df$Year))),selected = "2024-2025"))
+                                         column(3, selectInput("year_input","Season:",choices = rev(unique(sort(df$Year))),selected = maxYr))
                                          ,column(3, selectInput("stat_input_2", "Statistic of Interest:", choices = rev(read.csv("Complete Data/menu_options_2.csv")[, ncol(read.csv("Complete Data/menu_options_2.csv"))]), selected = "Value Added"))
                                          ,column(3, selectizeInput("player_input", "Player (optional):",choices = NULL,selected = ""))
                                          ,column(3,

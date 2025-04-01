@@ -161,5 +161,3 @@ if (!exist_yn){
 
 exist_yn = ifelse(file.exists(today_file),T,F)
 print(paste0(Sys.Date()," - File created: ",exist_yn))
-
-# Start with 2016
