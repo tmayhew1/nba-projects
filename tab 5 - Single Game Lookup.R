@@ -77,3 +77,4 @@ gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd
 
 datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`))
 # df$Hex[which(df$Team==team_abb)[1]] (make the row color of the team with team_abb this color)
+
