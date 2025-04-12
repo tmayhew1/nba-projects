@@ -7,7 +7,7 @@ df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
 df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
 df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
 
-lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything())
+lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything()) %>% as_tibble()
 team_map = function(input){
   map = read.csv("Complete Data/team_abbreviations.csv")[,-1]
   return(map$abb[which(map$name == input)])
@@ -42,12 +42,12 @@ gl = function(abb,ilink,date_choice){
 }
 
 tmLkp_choices = data.frame(abb = unique(df$Team[which(df$Year==maxYr)])) %>% 
-  inner_join(read.csv("Complete Data/team_abbreviations.csv")[,-1]) %>% arrange(name) %>% select(name)
+  inner_join(read.csv("Complete Data/team_abbreviations.csv")[,-1],by = join_by(abb)) %>% arrange(name) %>% select(name)
 
 team_input = "Los Angeles Lakers"
   team_abb = team_map(team_input)
 game_log = team_gl(team_abb,year = "2025")
-date_choice = game_log$DateatOpp[which(grepl("2025-04-03",game_log$DateatOpp))]
+date_choice = game_log$DateatOpp[which(grepl("2025-04-11",game_log$DateatOpp))]
 ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
 
 # open these up to start parsing box score stuff:
@@ -57,7 +57,7 @@ ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
 gl_df = gl(abb = team_abb,ilink = ilink,date_choice = date_choice)
 gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
 if (T){
-  calc = gl_df %>% cbind.data.frame(lga %>% tail(1)) %>% as_tibble()
+  calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
   calc = calc %>% mutate(
     X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
     X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
@@ -77,4 +77,7 @@ gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd
 
 datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`))
 # df$Hex[which(df$Team==team_abb)[1]] (make the row color of the team with team_abb this color)
+
+sp_player_input = "Cam Whitmore"
+
 
