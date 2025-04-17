@@ -28,7 +28,7 @@ team_gl = function(abb,year="2025"){
   ) %>% transmute(DateatOpp = paste0(Date," (",at," ",Opp,")"),link)
   return(df %>% arrange(desc(DateatOpp)))
 }
-gl = function(abb,ilink,date_choice){
+team_sg = function(abb,ilink,date_choice){
   page = read_html(ilink)
   data.raw = html_table(page)
   opp_abb = strsplit(date_choice,split = ")| ")[[1]][length(strsplit(date_choice,split = ")| ")[[1]])]
@@ -41,20 +41,13 @@ gl = function(abb,ilink,date_choice){
   return(return_df)
 }
 
-tmLkp_choices = data.frame(abb = unique(df$Team[which(df$Year==maxYr)])) %>% 
-  inner_join(read.csv("Complete Data/team_abbreviations.csv")[,-1],by = join_by(abb)) %>% arrange(name) %>% select(name)
-
-team_input = "Los Angeles Lakers"
-  team_abb = team_map(team_input)
+# team_input = "Los Angeles Lakers"
+#   team_abb = team_map(team_input)
 game_log = team_gl(team_abb,year = "2025")
-date_choice = game_log$DateatOpp[which(grepl("2025-04-11",game_log$DateatOpp))]
+date_choice = game_log$DateatOpp[which(grepl("2025-02-08",game_log$DateatOpp))]
 ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
 
-# open these up to start parsing box score stuff:
-#https://www.basketball-reference.com/teams/LAL/2025/gamelog/
-#https://www.basketball-reference.com/boxscores/202410220LAL.html
-
-gl_df = gl(abb = team_abb,ilink = ilink,date_choice = date_choice)
+gl_df = team_sg(abb = team_abb,ilink = ilink,date_choice = date_choice)
 gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
 if (T){
   calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
@@ -76,8 +69,35 @@ if (T){
 gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),by = join_by(Player)) %>% arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
 
 datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`))
-# df$Hex[which(df$Team==team_abb)[1]] (make the row color of the team with team_abb this color)
 
-sp_player_input = "Cam Whitmore"
+sp_player_input = "Austin Reaves"
+sp_output = calc %>% filter(Player == sp_player_input) %>% 
+  transmute(
+    `Scoring (Volume)` = ((PTS/MP)-laPTSperM)*(MP)
+    ,`Efficiency (3P)` = (3*X3PAdd)
+    ,`Efficiency (2P)` = (2*X2PAdd)
+    ,`Efficiency (FT)` = FTAdd
+    ,`Assists` = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5)
+    ,`Steals` = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss)
+    ,`Blocks` = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate)
+    ,`Turnovers` = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)
+    ,`Rebounds (D)` = (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate)
+    ,`Rebounds (O)` = (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate)
+  ) %>% gather(key = "key",value = "value") %>% 
+  mutate(abs = (value),col_n = ifelse(value > 0,"green4","red4")) %>% arrange(desc(abs))
+sp_output$key = factor(sp_output$key,levels = rev(sp_output$key))
+sp_output %>% ggplot(aes(x = key, y = abs, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
+  theme_bw() + geom_hline(yintercept = 0) + coord_flip() +
+  scale_y_continuous("Value Added") + scale_x_discrete("") + 
+  scale_fill_manual(values = unique(c(sp_output$col_n))) + 
+  theme(legend.position = "none") + ggtitle(sp_player_input,subtitle = date_choice)
 
+gl_df %>% mutate(col = ifelse(Team==team_abb,df$Hex[which(df$Team==team_abb)[1]],"grey40")) %>% 
+  ggplot(aes(x = `+/-`,y = valueAdd,label = Player, fill = col)) + 
+  geom_hline(yintercept = 0,alpha = I(1/3)) + 
+  geom_vline(xintercept = 0,alpha = I(1/3)) + 
+  geom_label(alpha = I(0.5), size = 3.25) +
+  theme_bw() + scale_fill_identity() + 
+  scale_y_continuous("Value Added") +
+  scale_x_continuous(limits = c(min(gl_df$`+/-`)-((abs(min(gl_df$`+/-`)))/5),max(max(gl_df$`+/-`)+((abs(max(gl_df$`+/-`))/5)),0)))
 
