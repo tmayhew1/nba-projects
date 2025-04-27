@@ -42,10 +42,16 @@ team_sg = function(abb,ilink,date_choice){
 }
 
 # team_input = "Los Angeles Lakers"
-#   team_abb = team_map(team_input)
+# team_abb = team_map(team_input)
+# game_log = team_gl(team_abb,year = "2025")
+# date_choice = game_log$DateatOpp[which(grepl("2025-02-08",game_log$DateatOpp))]
+# ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
+
+team_input = "Golden State Warriors"
+team_abb = team_map(team_input)
 game_log = team_gl(team_abb,year = "2025")
-date_choice = game_log$DateatOpp[which(grepl("2025-02-08",game_log$DateatOpp))]
-ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
+date_choice = "2025-04-20 (@ HOU)"
+ilink = "https://www.basketball-reference.com/boxscores/202504200HOU.html"
 
 gl_df = team_sg(abb = team_abb,ilink = ilink,date_choice = date_choice)
 gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
@@ -70,7 +76,7 @@ gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd
 
 datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`))
 
-sp_player_input = "Austin Reaves"
+sp_player_input = "Stephen Curry"
 sp_output = calc %>% filter(Player == sp_player_input) %>% 
   transmute(
     `Scoring (Volume)` = ((PTS/MP)-laPTSperM)*(MP)

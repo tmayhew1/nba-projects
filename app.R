@@ -156,9 +156,10 @@ ui =
                                        width = 12,
                                        fluidRow(
                                          column(2, selectInput("year_input_2","Season:",choices = rev(unique(sort(df$Year))),selected = maxYr))
-                                         ,column(3, selectInput("team_input", "Team:", choices = sort((read.csv("Complete Data/team_abbreviations.csv") %>% filter(modern==1))[,3]), selected = "Los Angeles Lakers"))
+                                         ,column(2, selectInput("team_input", "Team:", choices = sort((read.csv("Complete Data/team_abbreviations.csv") %>% filter(modern==1))[,3]), selected = "Los Angeles Lakers"))
                                          ,column(3, selectizeInput("date_input_2", "Date:",choices = NULL,selected = ""))
-                                         ,column(4, selectizeInput("player_input_2", "Player (optional):",choices = NULL,selected = ""))
+                                         ,column(3, selectizeInput("player_input_2", "Player (optional):",choices = NULL,selected = ""))
+                                         ,br(),column(2, actionButton("run","Load/Reload Graphs", class = "btn-lg")),
                                          )
                                        )
                                        ,fluidRow(
@@ -651,118 +652,122 @@ server <- function(input, output, session) {
   
   # Table 5: Single Game Statistics
   output$table5 = renderDT({
-    year_input_2 = year_input_2()
-    team_input = team_input()
-    date_input_2 = date_input_2()
-    player_input_2 = player_input_2()
-    
-    game_log = team_gl(team_map(team_input),year = str_split(year_input_2,"-")[[1]][2])
-    date_choice = game_log$DateatOpp[which(game_log$DateatOpp==date_input_2)]
-    ilink = game_log$link[which(game_log$DateatOpp==date_input_2)]
-    
-    gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
-    gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
-    if (T){
-      calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
-      calc = calc %>% mutate(
-        X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
-        X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
-        FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-        valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-          ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-          (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
-          (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-          (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-          -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-          (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-          (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-        fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-      )
-    }
-    gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
-                                 by = join_by(Player)) %>% 
-      arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
-    
-    datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`)) %>% 
-      formatStyle(
-      'Team', 
-      target = 'row', 
-      backgroundColor = styleEqual(
-        c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
-        c(lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25), "lightgrey")),
-      color = styleEqual(
-        c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
-        c("white", "black")
-      )
-    )
-    
+    req(input$run)
+    isolate({
+      year_input_2 = year_input_2()
+      team_input = team_input()
+      date_input_2 = date_input_2()
+      player_input_2 = player_input_2()
+      
+      game_log = team_gl(team_map(team_input),year = str_split(year_input_2,"-")[[1]][2])
+      date_choice = game_log$DateatOpp[which(game_log$DateatOpp==date_input_2)]
+      ilink = game_log$link[which(game_log$DateatOpp==date_input_2)]
+      
+      gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
+      gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
+      if (T){
+        calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+        calc = calc %>% mutate(
+          X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
+          X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
+          FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+            -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+            (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+            (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+          fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+        )
+      }
+      gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
+                                   by = join_by(Player)) %>% 
+        arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
+      
+      datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`)) %>% 
+        formatStyle(
+          'Team', 
+          target = 'row', 
+          backgroundColor = styleEqual(
+            c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+            c(lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25), "lightgrey")),
+          color = styleEqual(
+            c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+            c("white", "black")
+          )
+        )
+    })
   })
   
   # Plot 5: Game Scatter or Player Performance Breakdown
   output$plot5 = renderPlot({
-    year_input_2 = year_input_2()
-    team_input = team_input()
-    date_input_2 = date_input_2()
-    player_input_2 = player_input_2()
-    
-    game_log = team_gl(team_map(team_input),year = str_split(year_input_2,"-")[[1]][2])
-    date_choice = game_log$DateatOpp[which(game_log$DateatOpp==date_input_2)]
-    ilink = game_log$link[which(game_log$DateatOpp==date_input_2)]
-    
-    gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
-    gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
-    if (T){
-      calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
-      calc = calc %>% mutate(
-        X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
-        X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
-        FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-        valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-          ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-          (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
-          (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-          (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-          -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-          (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-          (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-        fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-      )
-    }
-    gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),by = join_by(Player)) %>% arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
-    
-    if (player_input_2 == ""|(!(player_input_2 %in% calc$Player))){
-      gl_df %>% mutate(col = ifelse(Team==team_map(team_input),df$Hex[which(df$Team==team_map(team_input))[1]],"grey40")) %>% 
-        ggplot(aes(x = `+/-`,y = valueAdd,label = Player, fill = col)) + 
-        geom_hline(yintercept = 0,alpha = I(1/3)) + 
-        geom_vline(xintercept = 0,alpha = I(1/3)) + 
-        geom_label(alpha = I(0.5), size = 3.25) +
-        theme_bw() + scale_fill_identity() + 
-        scale_y_continuous("Value Added") +
-        scale_x_continuous(limits = c(min(gl_df$`+/-`)-((abs(min(gl_df$`+/-`)))/5),max(max(gl_df$`+/-`)+((abs(max(gl_df$`+/-`))/5)),0)))
+    req(input$run)
+    isolate({
+      year_input_2 = year_input_2()
+      team_input = team_input()
+      date_input_2 = date_input_2()
+      player_input_2 = player_input_2()
       
-    } else{
-      sp_output = calc %>% filter(Player == player_input_2) %>% 
-        transmute(
-          `Scoring (Volume)` = ((PTS/MP)-laPTSperM)*(MP)
-          ,`Efficiency (3P)` = (3*X3PAdd)
-          ,`Efficiency (2P)` = (2*X2PAdd)
-          ,`Efficiency (FT)` = FTAdd
-          ,`Assists` = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5)
-          ,`Steals` = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss)
-          ,`Blocks` = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate)
-          ,`Turnovers` = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)
-          ,`Rebounds (D)` = (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate)
-          ,`Rebounds (O)` = (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate)
-        ) %>% gather(key = "key",value = "value") %>% 
-        mutate(abs = (value),col_n = ifelse(value > 0,lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25),"lightgrey")) %>% arrange(desc(abs))
-      sp_output$key = factor(sp_output$key,levels = rev(sp_output$key))
-      sp_output %>% ggplot(aes(x = key, y = abs, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
-        theme_bw() + geom_hline(yintercept = 0) + coord_flip() +
-        scale_y_continuous("Value Added") + scale_x_discrete("") + 
-        scale_fill_manual(values = unique(c(sp_output$col_n))) + 
-        theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice)
-    }
-
+      game_log = team_gl(team_map(team_input),year = str_split(year_input_2,"-")[[1]][2])
+      date_choice = game_log$DateatOpp[which(game_log$DateatOpp==date_input_2)]
+      ilink = game_log$link[which(game_log$DateatOpp==date_input_2)]
+      
+      gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
+      gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
+      if (T){
+        calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+        calc = calc %>% mutate(
+          X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
+          X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
+          FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+            -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+            (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+            (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+          fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+        )
+      }
+      gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),by = join_by(Player)) %>% arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
+      
+      if (player_input_2 == ""|(!(player_input_2 %in% calc$Player))){
+        gl_df %>% mutate(col = ifelse(Team==team_map(team_input),df$Hex[which(df$Team==team_map(team_input))[1]],"grey40")) %>% 
+          ggplot(aes(x = `+/-`,y = valueAdd,label = Player, fill = col)) + 
+          geom_hline(yintercept = 0,alpha = I(1/3)) + 
+          geom_vline(xintercept = 0,alpha = I(1/3)) + 
+          geom_label(alpha = I(0.5), size = 3.25) +
+          theme_bw() + scale_fill_identity() + 
+          scale_y_continuous("Value Added") +
+          scale_x_continuous(limits = c(min(gl_df$`+/-`)-((abs(min(gl_df$`+/-`)))/5),max(max(gl_df$`+/-`)+((abs(max(gl_df$`+/-`))/5)),0)))
+        
+      } else{
+        sp_output = calc %>% filter(Player == player_input_2) %>% 
+          transmute(
+            `Scoring (Volume)` = ((PTS/MP)-laPTSperM)*(MP)
+            ,`Efficiency (3P)` = (3*X3PAdd)
+            ,`Efficiency (2P)` = (2*X2PAdd)
+            ,`Efficiency (FT)` = FTAdd
+            ,`Assists` = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5)
+            ,`Steals` = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss)
+            ,`Blocks` = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate)
+            ,`Turnovers` = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)
+            ,`Rebounds (D)` = (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate)
+            ,`Rebounds (O)` = (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate)
+          ) %>% gather(key = "key",value = "value") %>% 
+          mutate(abs = (value),col_n = ifelse(value > 0,lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25),"lightgrey")) %>% arrange(desc(abs))
+        sp_output$key = factor(sp_output$key,levels = rev(sp_output$key))
+        sp_output %>% ggplot(aes(x = key, y = abs, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
+          theme_bw() + geom_hline(yintercept = 0) + coord_flip() +
+          scale_y_continuous("Value Added") + scale_x_discrete("") + 
+          scale_fill_manual(values = unique(c(sp_output$col_n))) + 
+          theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice)
+      }
+    })
   })
 }
 
