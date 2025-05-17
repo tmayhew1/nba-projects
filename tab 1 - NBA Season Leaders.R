@@ -27,11 +27,11 @@ lesearch = function(input_df,input_p,gp_input=""){
   }
   output
 }
-tesearch = function(input_df,input_t){
+tesearch = function(input_df,input_t, df = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")){
   gpl_control = input_df %>% arrange(desc(valueAdd/G)) #%>% inner_join(gpl_df,by = join_by(Year)) %>% filter(G > gpl) %>% select(-gpl) 
   input_df = gpl_control %>% mutate(Rk = 1:nrow(gpl_control))
-  output = input_df[which(input_df$Team==input_t),] %>% arrange(desc(MP*G)) %>% head(10)
-  output %>% transmute(Rk,Player,Team,G,MP = MP/G,PTS = PTS/G, TRB = TRB/G, AST = AST/G, X3P. = X3P/X3PA, X3PA = X3PA/G, FG. = FG/FGA, FGA = FGA/G, STK = (STL+BLK)/G, vaPG = valueAdd/G) %>% arrange(desc(vaPG))
+  output = input_df[which(input_df$Team==input_t),] %>% arrange(desc(MP*G)) %>% head(10) %>% mutate(vaPerc = ecdf(df$valueAdd/df$G)(valueAdd/G)*100)
+  output %>% transmute(Rk,Player,Team,G,MP = MP/G,PTS = PTS/G, TRB = TRB/G, AST = AST/G, X3P. = X3P/X3PA, X3PA = X3PA/G, FG. = FG/FGA, FGA = FGA/G, STK = (STL+BLK)/G, vaPG = valueAdd/G, vaPerc) %>% arrange(desc(vaPG))
 }
 
 #Start here!
@@ -137,7 +137,7 @@ print(plot)
 #print(plot_2)
 
 all_year %>% lesearch("LeBron James")
-all_year %>% tesearch("CLE")
+all_year %>% tesearch("CLE",df)
 
 # Compare 3-Pointers Added
 #p1 = psearch("CJ McCollum")

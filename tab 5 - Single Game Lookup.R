@@ -47,11 +47,11 @@ team_sg = function(abb,ilink,date_choice){
 # date_choice = game_log$DateatOpp[which(grepl("2025-02-08",game_log$DateatOpp))]
 # ilink = game_log$link[which(game_log$DateatOpp==date_choice)]
 
-team_input = "Golden State Warriors"
+team_input = "Denver Nuggets"
 team_abb = team_map(team_input)
 game_log = team_gl(team_abb,year = "2025")
-date_choice = "2025-04-20 (@ HOU)"
-ilink = "https://www.basketball-reference.com/boxscores/202504200HOU.html"
+date_choice = "2025-05-15 (vs. OKC)"
+ilink = "https://www.basketball-reference.com/boxscores/202505150DEN.html"
 
 gl_df = team_sg(abb = team_abb,ilink = ilink,date_choice = date_choice)
 gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
