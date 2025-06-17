@@ -1,0 +1,28 @@
+,col_name,display_name
+1,X2P.,2-Point Percentage
+3,X2PA,2-Pointers Attempted
+4,X2P,2-Pointers Made
+5,X3P.,3-Point Percentage
+7,X3PA,3-Pointers Attempted
+8,X3P,3-Pointers Made
+16,FG.,Field Goal Percentage
+18,FGA,Field Goals Attempted
+19,FG,Field Goals Made
+20,FT.,Free Throw Percentage
+22,FTA,Free Throws Attempted
+23,FT,Free Throws Made
+26,MP,Minutes Played
+27,ORB,Offensive Rebounds
+14,DRB,Defensive Rebounds
+28,PF,Personal Fouls
+12,BLK,Blocks
+33,STL,Steals
+34,TOV,Turnovers
+10,AST,Assists
+32,TRB,Rebounds
+30,PTS,Points
+21,FTAdd,Free Throws Added
+2,X2PAdd,2-Pointers Added
+6,X3PAdd,3-Pointers Added
+100,PTSAdd,"Efficiency Points Added"
+37,valueAdd,Value Added

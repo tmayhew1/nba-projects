@@ -16,7 +16,15 @@ if (!exist_yn){
           # print("This year's page is empty:")
           # print(i)
         } else{
-          df = data.raw[[1]] %>% as_tibble()
+          df_rs = data.raw[[1]] %>% data.frame(Playoffs = 0) %>% as_tibble()
+          df_pl = data.raw[[2]] %>% data.frame(Playoffs = 1) %>% as_tibble()
+          if (ncol(df_rs)==ncol(df_pl)){
+            # print(paste0(i," has the same columns in reg. season and playoffs."))
+          } else{
+            # print(paste0(i," has different columns in reg. season and playoffs."))
+            df_rs = df_rs[,-c(which(!(names(df_rs) %in% names(df_pl))))]
+          } #check to see if reg. season and playoffs can be rbinded (same columns)
+          df = df_rs %>% rbind.data.frame(df_pl)
           links = page %>% html_nodes("td a") %>% html_attr("href"); players = c(); teams = c()
           for (link in links){
             match = grepl("players\\/[a-z]\\/", link)
@@ -30,15 +38,20 @@ if (!exist_yn){
           }
           player_keys = unique(players);team_keys = unique(teams)
           df$Team = factor(df$Team, levels = c("5TM","4TM","3TM","2TM",team_keys[order(team_keys)]))
-          df_distinct = df %>% distinct(Player, Age,.keep_all = T) %>% filter(is.na(Team)==F)
-          df = df_distinct %>% data.frame(key = player_keys[1:nrow(df_distinct)]) %>% select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything())
+          
+          df_link_basis = df %>% distinct(Player, Age, .keep_all = T) %>% filter(is.na(Team)==F) %>% data.frame(key = player_keys[1:nrow(df %>% distinct(Player, Age, .keep_all = T) %>% filter(is.na(Team)==F))]) %>% select(Player,Age,key)
+          df_distinct = df %>% distinct(Player, Age, Playoffs, .keep_all = T) %>% filter(is.na(Team)==F) %>% inner_join(df_link_basis,by = join_by(Player,Age))
+          df = df_distinct %>% #data.frame(key = player_keys[1:nrow(df_distinct)]) %>% 
+            select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything())
+          
           df %>% write.csv(paste0("Totals/",i,".csv"))
           # print("Data collected for:")
           # print(i)
         }
       } else{
-        # print("Web page does not exist for:")
-        # print(i)
+        print("Bad URL Status Code for:")
+        print(i)
+        break
       }
     }
   }
@@ -53,7 +66,7 @@ if (!exist_yn){
         names(year_df)[ncol(year_df)] = co
       }
     }
-    year_df = year_df %>% select("key","Year","Player","Age","Team","Pos","G","FG","FGA",
+    year_df = year_df %>% select("key","Year","Player","Age","Team","Pos","Playoffs","G","FG","FGA",
                                  "FG.","X2P","X2PA","X2P.","eFG.","FT","FTA","FT.","TRB",  
                                  "AST","PF","PTS","Awards","GS","MP","X3P","X3PA","X3P.",  
                                  "ORB","DRB","STL","BLK","TOV")
@@ -82,7 +95,6 @@ if (!exist_yn){
   }
   
   all_data_standard = all_data_standard %>% mutate(Year = paste0(Year-1,"-",Year), Player = paste0(Player, " (", key, ")")) %>% select(-key)
-
   df = all_data_standard %>% as_tibble()
   summary = df %>% group_by(Year) %>% 
     summarise(.groups = "drop"
@@ -155,8 +167,11 @@ if (!exist_yn){
     
   ) %>% mutate(valueAdd = coalesce(valueAdd_1,valueAdd_2,valueAdd_3))
   
-  all_data_standard %>% left_join(va_df %>% select(Player, Year, valueAdd), by = c("Year", "Player")) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
-
+  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd), by = c("Year", "Player","Playoffs")) %>%
+    filter(Playoffs == 0) %>% select(-Playoffs) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
+  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd), by = c("Year", "Player","Playoffs")) %>%
+    filter(Playoffs == 1) %>% select(-Playoffs) %>% write.csv(paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = ""))
+  
 }
 
 exist_yn = ifelse(file.exists(today_file),T,F)
