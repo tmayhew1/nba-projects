@@ -4,8 +4,10 @@ exist_yn = ifelse(file.exists(today_file),T,F)
 if (!exist_yn){
   for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= (as.numeric(format(Sys.Date(), "%Y"))) & i!= (as.numeric(format(Sys.Date(), "%Y"))+1)){
-      # print("Totals for this year exist already:")
-      # print(i)
+      #print("Totals for this year exist already:")
+      #print(i)
+      #print("Totals for this year do not:")
+      #print(i+1)
     } else{
       url = paste0("https://www.basketball-reference.com/leagues/NBA_",i,"_totals.html")
       url_status = GET(url) %>% status_code()
@@ -17,14 +19,19 @@ if (!exist_yn){
           # print(i)
         } else{
           df_rs = data.raw[[1]] %>% data.frame(Playoffs = 0) %>% as_tibble()
-          df_pl = data.raw[[2]] %>% data.frame(Playoffs = 1) %>% as_tibble()
-          if (ncol(df_rs)==ncol(df_pl)){
-            # print(paste0(i," has the same columns in reg. season and playoffs."))
+          if (length(data.raw) < 2){
+            df = df_rs
           } else{
-            # print(paste0(i," has different columns in reg. season and playoffs."))
-            df_rs = df_rs[,-c(which(!(names(df_rs) %in% names(df_pl))))]
-          } #check to see if reg. season and playoffs can be rbinded (same columns)
-          df = df_rs %>% rbind.data.frame(df_pl)
+            df_pl = data.raw[[2]] %>% data.frame(Playoffs = 1) %>% as_tibble()
+            if (ncol(df_rs)==ncol(df_pl)){
+              # print(paste0(i," has the same columns in reg. season and playoffs."))
+            } else{
+              # print(paste0(i," has different columns in reg. season and playoffs."))
+              df_rs = df_rs[,-c(which(!(names(df_rs) %in% names(df_pl))))]
+            } #check to see if reg. season and playoffs can be rbinded (same columns)
+            df = df_rs %>% rbind.data.frame(df_pl)
+          }
+          
           links = page %>% html_nodes("td a") %>% html_attr("href"); players = c(); teams = c()
           for (link in links){
             match = grepl("players\\/[a-z]\\/", link)
@@ -163,13 +170,21 @@ if (!exist_yn){
       (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
       #-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
       (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.28)*(0.72) + #(est) d rebounds added
-      (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.72)*(0.28) #(est) o rebounds added
+      (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.72)*(0.28), #(est) o rebounds added
+    
+    vaPTSv = ((PTS/MP)-(laPTSperM))*(MP) #points added (volume)
+    ,vaAST = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) #assists added
+    ,vaSTL = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) #steals added
+    ,vaBLK = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) #blocks added
+    ,vaTOV = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) #turnovers added
+    ,vaDRB = (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) #d rebounds added
+    ,vaORB = (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate)
     
   ) %>% mutate(valueAdd = coalesce(valueAdd_1,valueAdd_2,valueAdd_3))
   
-  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd), by = c("Year", "Player","Playoffs")) %>%
+  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd,vaPTSv,vaAST,vaSTL,vaBLK,vaTOV,vaDRB,vaORB), by = c("Year", "Player","Playoffs")) %>%
     filter(Playoffs == 0) %>% select(-Playoffs) %>% write.csv(paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = ""))
-  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd), by = c("Year", "Player","Playoffs")) %>%
+  all_data_standard %>% left_join(va_df %>% select(Player, Year, Playoffs, valueAdd,vaPTSv,vaAST,vaSTL,vaBLK,vaTOV,vaDRB,vaORB), by = c("Year", "Player","Playoffs")) %>%
     filter(Playoffs == 1) %>% select(-Playoffs) %>% write.csv(paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = ""))
   
 }

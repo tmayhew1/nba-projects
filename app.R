@@ -28,9 +28,13 @@ glsearch = function(player,years){
       page = read_html(url)
       data.raw = html_table(page, fill=TRUE)
       if (length(data.raw)==0){
-        print("This year's page is empty:")
-        print(y)
+        #print("This year's page is empty:")
+        #print(y)
       } else{
+        if (length(data.raw)<9){
+          data.raw[[9]] = data.frame(matrix(nrow = 0,ncol = ncol(data.raw[[8]]))) %>% set_names(nm = names(data.raw[[8]]))
+        }
+        
         if (length(which(names(data.raw[[8]])=="+/-"))==0){
           if (ncol(data.raw[[8]])==ncol(data.raw[[9]])){
             reg_games_1 = data.raw[[8]] %>% rbind.data.frame(data.raw[[9]]) %>% select(G = Gtm, Date, Tm = Team, MP, FG, FGA, `3P`, `3PA`, FT, FTA, ORB, DRB, TRB, AST, STL, BLK, TOV, PF, PTS, GmSc)
@@ -136,6 +140,12 @@ team_dl = function(abb,ilink,opp_abb,period="Game"){
   }
   return(return_df)
 }
+daily_l = function(ilink_dl){
+  page = read_html(ilink_dl)
+  data.raw = html_table(page)
+  ret_df = data.raw[[1]][,-c(which(names(data.raw[[1]])==""|grepl("\\%",names(data.raw[[1]]))))]
+  return(ret_df %>% filter(Player != "Player"))
+}
 add_suffix <- function(x){
   x = as.integer(x)
   suffix <- ifelse(x %% 100 %in% 11:13, "th",
@@ -166,7 +176,7 @@ ui =
                                        fluidRow(
                                          column(4, selectInput("stat_input", "Statistic of Interest:", choices = rev(read.csv("Complete Data/menu_options.csv")[, ncol(read.csv("Complete Data/menu_options.csv"))]), selected = "Value Added"), style = "font-size: 12px;")
                                          ,column(3, numericInput("roll_avg_input", "Rolling Average:", value = 10, min = 1, step = 1), style = "font-size: 12px;")
-                                         ,column(5, selectInput("date_input", "Since:", choices = c("Past year (365 days)", paste0("Start of this NBA season (Oct. ", str_split(max(df$Year), pattern = "-")[[1]][1], ")"), "Past month (30 days)"), selected = paste0("Start of this NBA season (Oct. ", str_split(max(df$Year), pattern = "-")[[1]][1], ")")), style = "font-size: 12px;")
+                                         ,column(5, selectInput("date_input", "Since:", choices = c("Past year (365 days)", paste0("Start of this NBA season (Oct. ", str_split(max(df$Year), pattern = "-")[[1]][1], ")"), "Past month (30 days)"), selected = "Past year (365 days)"), style = "font-size: 12px;")
                                        )
                                      ),
                                      column(
@@ -223,15 +233,15 @@ ui =
                                          ,column(3, selectizeInput("date_input_2", "Date:",choices = NULL,selected = ""))
                                          ,column(3, selectizeInput("player_input_2", "Player (optional):",choices = NULL,selected = ""))
                                          ,br(),column(2, actionButton("run","Load/Reload", class = "btn-lg")),
-                                         )
-                                       )
-                                       ,fluidRow(
-                                         column(width = 8, DTOutput("table5"))
-                                         ,column(4, plotOutput("plot5"))
                                        )
                                      )
+                                     ,fluidRow(
+                                       column(width = 8, DTOutput("table5"))
+                                       ,column(4, plotOutput("plot5"))
+                                     )
                                    )
-                                 ),
+                                 )
+                        ),
                         tabPanel("Date Lookup",
                                  fluidPage(
                                    titlePanel(h1("Single Game Search (by Date): Regular Season and Playoffs", style = "font-size: 18px;")),
@@ -240,7 +250,7 @@ ui =
                                      ,column(
                                        width = 12,
                                        fluidRow(
-                                         column(2, dateInput("date_input_3","Date:",value = Sys.Date()-1))
+                                         column(2, dateInput("date_input_3","Date:",value = as.Date(Sys.time() %>% as.POSIXct(tz = "America/New_York")-days(1))))
                                          ,column(3, selectInput("matchup_input", "Game:", choices = NULL, selected = ""))
                                          ,column(3, selectInput("period_input", "Period: ", choices = c("Game","1st Quarter","2nd Quarter","1st Half","3rd Quarter","4th Quarter","2nd Half","OT"), selected = "Game"))
                                          ,br(),column(2, actionButton("run_2","Load/Reload", class = "btn-lg")),
@@ -252,7 +262,7 @@ ui =
                                      )
                                    )
                                  )
-                                )
+                        )
                         ,
                         tabPanel("Career Comparison",
                                  fluidPage(
@@ -271,21 +281,22 @@ ui =
                                          ,br()
                                          ,column(1, switchInput("pg_factor_2", "Per/game?", value = T, size="small"),textOutput("toggle_status"))
                                        )
-                                     ),
-                                     column(
-                                       width = 6,
-                                       DTOutput("table7")
                                      )
+                                     # ,
+                                     # column(
+                                     #   width = 6,
+                                     #   DTOutput("table7")
+                                     # )
                                    ),
                                    tags$br(),
                                    tags$br(),
                                    fluidRow(
-                                       DTOutput("table8",width = "100%")
-                                       )
+                                     DTOutput("table8",width = "100%")
+                                   )
                                    
                                  )
                         )
-     )
+            )
   )
 
 # Define server logic
@@ -309,7 +320,7 @@ server <- function(input, output, session) {
       c("",html_table(read_html(paste0("https://www.basketball-reference.com/teams/",team_map(input$team_input),"/",str_split(input$year_input_2,"-")[[1]][2],".html")))[[2]]$Player)
     })
   })
-
+  
   observeEvent(input$date_input_3, {
     updateSelectInput(session, "matchup_input", choices = {
       m = str_split(input$date_input_3,"-")[[1]][2]
@@ -325,12 +336,11 @@ server <- function(input, output, session) {
       } else{
         matchups = data.frame(link = links,matchup = "")
         for (i in 1:length(links)){matchups$matchup[i] = paste0(data.raw[[3*i-2]]$X1[1]," vs. ",data.raw[[3*i-2]]$X1[2])}
-        matchups$matchup
+        c("-",matchups$matchup)
       }
     })
   })
   
-  #
   # Start data collect
   p1_df = reactive({glsearch(player = input$p1_input,years = c(format(Sys.Date(), "%Y") %>% as.integer()-1,format(Sys.Date(), "%Y") %>% as.integer()+1))})
   p2_df = reactive({glsearch(player = input$p2_input,years = c(format(Sys.Date(), "%Y") %>% as.integer()-1,format(Sys.Date(), "%Y") %>% as.integer()+1))})
@@ -362,7 +372,7 @@ server <- function(input, output, session) {
   # Table 2: Summary Statistics
   output$table2 = renderDT({
     p1_df = p1_df();p2_df = p2_df();date_input = date_input()
-    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
+    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() < 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
     
     if (nrow(p2_df)==0){
       # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
@@ -575,7 +585,7 @@ server <- function(input, output, session) {
     }
     sim_p1 = c();sim_p2 = c();s1=c(static$Stat[which(static$Player==p1_df$Player[1])]);s2=c(static$Stat[which(static$Player==p2_df$Player[1])])
     
-    for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = 5,replace = F)]))}
+    for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = 5,replace = T)]))}
     if (nrow(p2_df)==0){
       # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
       sim_p2 = c()
@@ -606,7 +616,7 @@ server <- function(input, output, session) {
     plot_3
     
   })
-   
+  
   # Table 1: Game Log
   output$table1 = renderDT({
     p1_df = p1_df();p2_df = p2_df();date_input = date_input()
@@ -798,8 +808,8 @@ server <- function(input, output, session) {
         datatable(rownames = F,
                   options = list(
                     pageLength = 11 # Set the default number of rows
-                    )
-                  ) %>% 
+                  )
+        ) %>% 
         formatStyle(
           'Player',
           target = 'row',
@@ -947,7 +957,7 @@ server <- function(input, output, session) {
       date_input_3 = date_input_3()
       matchup_input = matchup_input()
       period_input = period_input()
-      if (matchup_input == "No game(s) data for this day!"){
+      if (matchup_input == "No game data for this day!"){
         data.frame(Error = paste0("Date does not have any game data as of ",format(Sys.time() %>% as.POSIXct(tz = "America/New_York"), "%a %b %d %Y %X")," ET"))
       } else{
         m = str_split(date_input_3,"-")[[1]][2];d = str_split(date_input_3,"-")[[1]][3];y = str_split(date_input_3,"-")[[1]][1]
@@ -959,43 +969,120 @@ server <- function(input, output, session) {
         matchups = data.frame(link = links,matchup = "")
         for (i in 1:length(links)){matchups$matchup[i] = paste0(data.raw[[3*i-2]]$X1[1]," vs. ",data.raw[[3*i-2]]$X1[2])}
         
-        ilink = paste0("https://www.basketball-reference.com",matchups$link[which(matchups$matchup==matchup_input)])
-        gl_df = team_dl(abb = team_map2(str_split(matchup_input," vs. ")[[1]][2]),ilink = ilink,opp_abb = team_map2(str_split(matchup_input," vs. ")[[1]][1]),period = period_input)
-        gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`) %>% group_by(Player,Team) %>% summarise(.groups = "drop",across(everything(),sum))
-        
-        if (T){
-          calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
-          calc = calc %>% mutate(
-            X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
-            X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
-            FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-            valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-              ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-              (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
-              (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-              (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-              -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-              (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-              (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-            fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-          )
-        }
-        gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
-                                     by = join_by(Player)) %>%
-          arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
+        if (matchup_input == '-'){
+          if (period_input != "Game"){
+            collect_perf = NULL
+            for (ind in 1:nrow(matchups)){
+              ilink = paste0("https://www.basketball-reference.com", matchups$link[ind])
+              sgm_input = matchups$matchup[ind]
+              gl_df = team_dl(
+                abb = team_map2(str_split(sgm_input, " vs. ")[[1]][2]),
+                ilink = ilink,
+                opp_abb = team_map2(str_split(sgm_input, " vs. ")[[1]][1]),
+                period = period_input
+              ) %>%
+                mutate(
+                  across(-c("Player", "Team"), as.double),
+                  X2P = FG - `3P`,
+                  X2PA = FGA - `3PA`
+                ) %>%
+                group_by(Player, Team) %>%
+                summarise(.groups = "drop", across(everything(), sum))
 
-        datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`),
-                  options = list(pageLength = 50)) %>%
-          formatStyle(
-            'Team',
-            target = 'row',
-            backgroundColor = styleEqual(
-              c(team_map2(str_split(matchup_input," vs. ")[[1]][2]),team_map2(str_split(matchup_input," vs. ")[[1]][1])),
-              c(lighten_color(df$Hex[which(df$Team==team_map2(str_split(matchup_input," vs. ")[[1]][2]))[1]],.25), "lightgrey")),
-            color = styleEqual(
-              c(team_map2(str_split(matchup_input," vs. ")[[1]][2]),team_map2(str_split(matchup_input," vs. ")[[1]][1])),
-              c("white", "black")
+              if (is.null(collect_perf)) {
+                collect_perf = gl_df[0, ]  # Preallocate with structure
+              }
+
+              calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1)) %>%
+                mutate(
+                  X3PAdd = ((`3P` / ifelse(`3PA` == 0, 1, `3PA`)) - la3P.) * `3PA`,
+                  X2PAdd = ((X2P / ifelse(X2PA == 0, 1, X2PA)) - la2P.) * X2PA,
+                  FTAdd = ((FT / ifelse(FTA == 0, 1, FTA)) - laFT.) * FTA,
+                  valueAdd = ((PTS / MP) - laPTSperM) * MP +
+                    ((3 * X3PAdd) + (2 * X2PAdd) + FTAdd) +
+                    (((AST / MP) - laASTperM) * MP) * laPTSperMake * 0.5 +
+                    (((STL / MP) - laSTLperM) * MP) * laPTSperPoss +
+                    (((BLK / MP) - laBLKperM) * MP) * laPTSperPoss * laDRBrate +
+                    -1 * (((TOV / MP) - laTOVperM) * MP) * laPTSperPoss +
+                    (((DRB / MP) - laDRBperM) * MP) * laPTSperPoss * laORBrate +
+                    (((ORB / MP) - laORBperM) * MP) * laPTSperPoss * laDRBrate,
+                  fPTS = 2 * FG + -1 * FGA + FT + -1 * FTA + `3P` + TRB + 2 * AST + 4 * STL + 4 * BLK + -2 * TOV + PTS
+                )
+
+              gl_df = gl_df %>%
+                inner_join(calc %>% select(Player, X3PAdd, X2PAdd, FTAdd, valueAdd, fPTS), by = join_by(Player)) %>%
+                select(Player, Team, MP, valueAdd, everything())
+
+              collect_perf = rbind(collect_perf, gl_df)
+            }
+            gl_df = collect_perf %>% arrange(desc(valueAdd))
+          } else{
+            ilink = paste0("https://www.basketball-reference.com/friv/dailyleaders.fcgi?month=",m,"&day=",d,"&year=",y,"&type=all")
+            dail_df = daily_l(ilink) %>% select(-Rk)
+            names(dail_df)[which(names(dail_df)=="Tm")] = 'Team'
+            dail_df = dail_df %>% separate(col = MP, into = c("MP", "SP"),sep = "\\:") %>% mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP)
+            if (T){
+              calc = dail_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+              calc = calc %>% mutate(across(-c("Player","Team","Opp"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
+              
+              calc = calc %>% mutate(
+                X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
+                X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
+                FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+                valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                  ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                  (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                  (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                  (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                  -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                  (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                  (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+                fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+              )
+            }
+            gl_df = dail_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
+                                             by = join_by(Player)) %>%
+              arrange(desc(valueAdd)) %>% select(Player, Team, Opp, MP, valueAdd,everything())
+            
+          }
+        } else{
+          ilink = paste0("https://www.basketball-reference.com",matchups$link[which(matchups$matchup==matchup_input)])
+          gl_df = team_dl(abb = team_map2(str_split(matchup_input," vs. ")[[1]][2]),ilink = ilink,opp_abb = team_map2(str_split(matchup_input," vs. ")[[1]][1]),period = period_input)
+          gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`) %>% group_by(Player,Team) %>% summarise(.groups = "drop",across(everything(),sum))
+          
+          if (T){
+            calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            calc = calc %>% mutate(
+              X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
+              X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
+              FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+              valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+              fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
             )
+          }
+          gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
+                                       by = join_by(Player)) %>%
+            arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
+        }
+        gl_df = gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`) %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1],by = join_by(Team))
+        p_length = ifelse(matchup_input == "-",10,50)
+        datatable(gl_df,
+                  options = list(
+                    pageLength = p_length,
+                    columnDefs = list(list(visible = FALSE, targets = 14))
+                  )) %>%
+          formatStyle(
+            columns = 1:(ncol(gl_df)-1),
+            valueColumns = "Hex",
+            backgroundColor = styleEqual(gl_df$Hex, gl_df$Hex),
+            color = "white"
           )
       }
     })
@@ -1008,8 +1095,49 @@ server <- function(input, output, session) {
       date_input_3 = date_input_3()
       matchup_input = matchup_input()
       period_input = period_input()
-      if (matchup_input == "No game(s) data for this day!"){
-        
+      if (matchup_input %in% c("No game(s) data for this day!","-")){
+        ## do nothing if no games ##
+        if (matchup_input == "-" & period_input == "Game"){
+          m = str_split(date_input_3,"-")[[1]][2];d = str_split(date_input_3,"-")[[1]][3];y = str_split(date_input_3,"-")[[1]][1]
+          ilink = paste0("https://www.basketball-reference.com/friv/dailyleaders.fcgi?month=",m,"&day=",d,"&year=",y,"&type=all")
+          dail_df = daily_l(ilink) %>% select(-Rk)
+          names(dail_df)[which(names(dail_df)=="Tm")] = 'Team'
+          dail_df = dail_df %>% separate(col = MP, into = c("MP", "SP"),sep = "\\:") %>% 
+            mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP) %>% 
+            mutate(across(-c("Player","Team","Opp"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
+          if (T){
+            calc = dail_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            calc = calc %>% mutate(
+              X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
+              X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
+              FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+              valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+              fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(`3P`) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+            )
+          }
+          gl_df = dail_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
+                                         by = join_by(Player)) %>%
+            arrange(desc(valueAdd)) %>% select(Player, Team, Opp, MP, valueAdd,everything()) %>% head(10)
+          gl_df = gl_df %>% mutate(Player = paste0(Player," vs. ",Opp)) %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1],by = "Team")
+          gl_df %>% mutate(col = Hex) %>% 
+            ggplot(aes(x = `+/-`,y = valueAdd,label = Player, fill = col)) + 
+            #geom_hline(yintercept = 0,alpha = I(1/3)) + 
+            geom_vline(xintercept = 0,alpha = I(1/3)) + 
+            geom_label(alpha = I(0.5), size = 3.25) +
+            theme_bw() + scale_fill_identity() + 
+            scale_y_continuous("Value Added") +
+            scale_x_continuous(limits = c(min(gl_df$`+/-`)-((abs(min(gl_df$`+/-`)))/4),max(max(gl_df$`+/-`)+((abs(max(gl_df$`+/-`))/4)),0))) +
+            ggtitle(paste0("Top 10 Performances on ",date_input_3),"  value added vs. plus/minus")
+          
+        }
+        ## also do nothing if anything but "game" is selected for period
       } else{
         m = str_split(date_input_3,"-")[[1]][2];d = str_split(date_input_3,"-")[[1]][3];y = str_split(date_input_3,"-")[[1]][1]
         url = paste0("https://www.basketball-reference.com/boxscores/index.fcgi?month=",m,"&day=",d,"&year=",y)
@@ -1056,69 +1184,68 @@ server <- function(input, output, session) {
     })
   })
   
-  # Table 7: Career Summary Statistics
-  output$table7 = renderDT({
-    p1_i = p1_i()
-    p2_i = p2_i()
-    stat_input_3 = stat_input_3()
-    reg_playoff_2 = reg_playoff_2()
-    pg_factor_2 = pg_factor_2()
-    if (reg_playoff_2 == "Playoffs"){
-      today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
-      df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
-      gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
-      df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
-      df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
-      df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
-    }
-    if (pg_factor_2){
-      summary = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
-        PTS = sum(PTS)/sum(G)
-        ,TRB = sum(TRB)/sum(G)
-        ,AST = sum(AST)/sum(G)
-        ,STL = sum(STL)/sum(G)
-        ,BLK = sum(BLK)/sum(G)
-        ,`FG%` = 100*(sum(FG)/sum(FGA))
-        ,`3P%` = 100*(sum(X3P)/sum(X3PA))
-        # ,FGA = sum(FGA)/sum(G)
-      )
-    } else{
-      summary = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
-        PTS = sum(PTS)
-        ,TRB = sum(TRB)
-        ,AST = sum(AST)
-        ,STL = sum(STL)
-        ,BLK = sum(BLK)
-        ,`FG%` = 100*(sum(FG)/sum(FGA))
-        ,`3P%` = 100*(sum(X3P)/sum(X3PA))
-      )
-    }
-    
-    sum_df = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
-      G = sum(G), VA = sum(valueAdd)
-    ) %>% arrange(desc(VA)) %>% select(-VA) %>% inner_join(summary,by = join_by(Player)) %>% 
-      mutate(across(where(is.double),~sprintf("%.1f",.x))) 
-    sum_df %>% 
-      datatable(options = list(dom = 't', paging = FALSE, searching = FALSE)) %>%
-      formatStyle("PTS",
-                  backgroundColor = styleEqual(max(sum_df$PTS), "gold")) %>%
-      formatStyle("TRB",
-                  backgroundColor = styleEqual(max(sum_df$TRB), "gold")) %>%
-      formatStyle("AST",
-                  backgroundColor = styleEqual(max(sum_df$AST), "gold")) %>%
-      formatStyle("STL",
-                  backgroundColor = styleEqual(max(sum_df$STL), "gold")) %>%
-      formatStyle("BLK",
-                  backgroundColor = styleEqual(max(sum_df$BLK), "gold")) %>%
-      formatStyle("FG%",
-                  backgroundColor = styleEqual(max(sum_df$`FG%`), "gold")) %>%
-      formatStyle("3P%",
-                  backgroundColor = styleEqual(max(sum_df$`3P%`), "gold"))
-    
-    
-    
-  })
-  
+  # # Table 7: Career Summary Statistics
+  # output$table7 = renderDT({
+  #   p1_i = p1_i();p2_i = p2_i()
+  #   stat_input_3 = stat_input_3()
+  #   reg_playoff_2 = reg_playoff_2()
+  #   pg_factor_2 = pg_factor_2()
+  #   if (reg_playoff_2 == "Playoffs"){
+  #     today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
+  #     df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
+  #     gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
+  #     df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
+  #     df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
+  #     df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
+  #   }
+  #   if (pg_factor_2){
+  #     summary = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
+  #       PTS = sum(PTS)/sum(G)
+  #       ,TRB = sum(TRB)/sum(G)
+  #       ,AST = sum(AST)/sum(G)
+  #       ,STL = sum(STL)/sum(G)
+  #       ,BLK = sum(BLK)/sum(G)
+  #       ,`FG%` = 100*(sum(FG)/sum(FGA))
+  #       ,`3P%` = 100*(sum(X3P)/sum(X3PA))
+  #       # ,FGA = sum(FGA)/sum(G)
+  #     )
+  #   } else{
+  #     summary = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
+  #       PTS = sum(PTS)
+  #       ,TRB = sum(TRB)
+  #       ,AST = sum(AST)
+  #       ,STL = sum(STL)
+  #       ,BLK = sum(BLK)
+  #       ,`FG%` = 100*(sum(FG)/sum(FGA))
+  #       ,`3P%` = 100*(sum(X3P)/sum(X3PA))
+  #     )
+  #   }
+  #   
+  #   sum_df = df %>% filter(Player %in% c(p1_i,p2_i)) %>% group_by(Player) %>% summarize(
+  #     G = sum(G), VA = sum(valueAdd)
+  #   ) %>% arrange(desc(VA)) %>% select(-VA) %>% inner_join(summary,by = join_by(Player)) %>% 
+  #     mutate(across(where(is.double),~sprintf("%.1f",.x))) 
+  #   sum_df %>% 
+  #     datatable(options = list(dom = 't', paging = FALSE, searching = FALSE)) %>%
+  #     formatStyle("PTS",
+  #                 backgroundColor = styleEqual(max(sum_df$PTS), "gold")) %>%
+  #     formatStyle("TRB",
+  #                 backgroundColor = styleEqual(max(sum_df$TRB), "gold")) %>%
+  #     formatStyle("AST",
+  #                 backgroundColor = styleEqual(max(sum_df$AST), "gold")) %>%
+  #     formatStyle("STL",
+  #                 backgroundColor = styleEqual(max(sum_df$STL), "gold")) %>%
+  #     formatStyle("BLK",
+  #                 backgroundColor = styleEqual(max(sum_df$BLK), "gold")) %>%
+  #     formatStyle("FG%",
+  #                 backgroundColor = styleEqual(max(sum_df$`FG%`), "gold")) %>%
+  #     formatStyle("3P%",
+  #                 backgroundColor = styleEqual(max(sum_df$`3P%`), "gold"))
+  #   
+  #   
+  #   
+  # })
+  # 
   # Table 8: Year-by-Year Statistics
   output$table8 = renderDT({
     p1_i = p1_i();p2_i = p2_i();stat_input = stat_input_3();reg_playoff_2 = reg_playoff_2();pg_factor = pg_factor_2()
