@@ -398,7 +398,7 @@ server <- function(input, output, session) {
                            (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
                          fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
     )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% head(1)
+    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
     cdf$Player = factor(cdf$Player,levels = unique(cdf$Player))
     
     if (nrow(p2_df)==0){
@@ -473,7 +473,7 @@ server <- function(input, output, session) {
                ifelse(PTS > 39,2,0) + # 40+ points bonus
                ifelse(PTS > 49,2,0) # 50+ points bonus
       )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% head(1)
+    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
     # modify Stat columns if stat_input is a percent!
     if (grepl("[P|p]ercentage",stat_input)){
       static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
@@ -511,20 +511,23 @@ server <- function(input, output, session) {
     static_line = static %>% filter(!is.na(Stat_ra))
     static_line = static_line %>% mutate(dateDisp = ifelse((G %in% c(ra,max(static_line$G))|Stat_ra == max(static_line$Stat_ra)),format(Date, "%m/%d/%y"),""))
     static_line$Player = factor(x = static_line$Player, levels = c(p1_df$Player[1],p2_df$Player[2]))
-    
-    if (ra==1){
-      plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-        geom_line() + scale_y_continuous(name = stat_input) +
-        scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-        theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-        scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
-        geom_point()
+    if (ra > nrow(p1_df)){
+      plot = data.frame(Error = "At least one player selected has not played enough games in the time period. Reduce rolling average or update timeframe.") %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
     } else{
-      plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-        geom_line() + scale_y_continuous(name = stat_input) +
-        scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-        theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-        scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+      if (ra==1){
+        plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+          geom_line() + scale_y_continuous(name = stat_input) +
+          scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+          theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+          scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
+          geom_point()
+      } else{
+        plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+          geom_line() + scale_y_continuous(name = stat_input) +
+          scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+          theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+          scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+      }
     }
     
     plot
@@ -571,7 +574,7 @@ server <- function(input, output, session) {
                ifelse(PTS > 39,2,0) + # 40+ points bonus
                ifelse(PTS > 49,2,0) # 50+ points bonus
       )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% head(1)
+    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
     
     # modify Stat columns if stat_input is a percent!
     if (grepl("[P|p]ercentage",stat_input)){
@@ -585,7 +588,7 @@ server <- function(input, output, session) {
     }
     sim_p1 = c();sim_p2 = c();s1=c(static$Stat[which(static$Player==p1_df$Player[1])]);s2=c(static$Stat[which(static$Player==p2_df$Player[1])])
     
-    for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = 5,replace = T)]))}
+    for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = min(length(s1),5),replace = T)]))}
     if (nrow(p2_df)==0){
       # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
       sim_p2 = c()
@@ -593,7 +596,7 @@ server <- function(input, output, session) {
       # add a sample size (games played) for context
       sims = sims %>% mutate(Player = paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"))
     } else{
-      for (k in 1:10000){sim_p2 = c(sim_p2,mean(s2[sample(length(s2),size = 5,replace = F)]))}
+      for (k in 1:10000){sim_p2 = c(sim_p2,mean(s2[sample(length(s2),size = min(length(s2),5),replace = F)]))}
       sims = rbind.data.frame(data.frame(sim = sim_p1,Player = p1_df$Player[1]), data.frame(sim = sim_p2,Player = p2_df$Player[1])) %>% as_tibble()
       # add a sample size (games played) for context
       sims = sims %>% mutate(Player = ifelse(Player==p1_df$Player[1],paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"),paste0(Player," (n=",(length(static$Stat[which(static$Player==p2_df$Player[1])])),")")))
@@ -659,14 +662,14 @@ server <- function(input, output, session) {
                            (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
                          fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
     )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% head(1)
+    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
     
     if (nrow(p2_df)==0){
-      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = sprintf("%.2f",valueAdd)) %>% 
+      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
         datatable(options = list(pageLength = 25))
       
     } else{
-      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = sprintf("%.2f",valueAdd)) %>% 
+      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
         datatable(options = list(pageLength = 25)) %>% 
         formatStyle(
           'Player', 
@@ -789,7 +792,10 @@ server <- function(input, output, session) {
                   STL = round(STL/G,2), BLK = round(BLK/G,2), valueAdd = round(valueAdd/G,2)) %>% 
         datatable(rownames = F, 
                   options = list(
-                    pageLength = 11 # Set the default number of rows
+                    pageLength = 11, # Set the default number of rows
+                    dom = 't', # Only show the table, without additional interface elements
+                    paging = FALSE, # Disable pagination
+                    searching = FALSE # Disable the search box
                   )
         ) %>%
         formatStyle(
@@ -807,7 +813,10 @@ server <- function(input, output, session) {
                   `2P.` = X2P., `2PA/G` = round(X2PA/G,2), FT., `FTA/G` = round(FTA/G,2), `Eff/G` = round(PTSAdd/G,3)) %>% 
         datatable(rownames = F,
                   options = list(
-                    pageLength = 11 # Set the default number of rows
+                    pageLength = 11, # Set the default number of rows
+                    dom = 't', # Only show the table, without additional interface elements
+                    paging = FALSE, # Disable pagination
+                    searching = FALSE # Disable the search box
                   )
         ) %>% 
         formatStyle(
@@ -860,7 +869,13 @@ server <- function(input, output, session) {
         arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
       
       datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`),
-                options = list(pageLength = 50)) %>% 
+                options = list(
+                  pageLength = 50,
+                  dom = 't', # Only show the table, without additional interface elements
+                  paging = FALSE, # Disable pagination
+                  searching = FALSE # Disable the search box
+                  
+                )) %>% 
         formatStyle(
           'Team', 
           target = 'row', 
@@ -988,11 +1003,11 @@ server <- function(input, output, session) {
                 ) %>%
                 group_by(Player, Team) %>%
                 summarise(.groups = "drop", across(everything(), sum))
-
+              
               if (is.null(collect_perf)) {
                 collect_perf = gl_df[0, ]  # Preallocate with structure
               }
-
+              
               calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1)) %>%
                 mutate(
                   X3PAdd = ((`3P` / ifelse(`3PA` == 0, 1, `3PA`)) - la3P.) * `3PA`,
@@ -1008,11 +1023,11 @@ server <- function(input, output, session) {
                     (((ORB / MP) - laORBperM) * MP) * laPTSperPoss * laDRBrate,
                   fPTS = 2 * FG + -1 * FGA + FT + -1 * FTA + `3P` + TRB + 2 * AST + 4 * STL + 4 * BLK + -2 * TOV + PTS
                 )
-
+              
               gl_df = gl_df %>%
                 inner_join(calc %>% select(Player, X3PAdd, X2PAdd, FTAdd, valueAdd, fPTS), by = join_by(Player)) %>%
                 select(Player, Team, MP, valueAdd, everything())
-
+              
               collect_perf = rbind(collect_perf, gl_df)
             }
             gl_df = collect_perf %>% arrange(desc(valueAdd))
@@ -1041,7 +1056,7 @@ server <- function(input, output, session) {
               )
             }
             gl_df = dail_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
-                                             by = join_by(Player)) %>%
+                                           by = join_by(Player)) %>%
               arrange(desc(valueAdd)) %>% select(Player, Team, Opp, MP, valueAdd,everything())
             
           }
@@ -1072,18 +1087,35 @@ server <- function(input, output, session) {
             arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
         }
         gl_df = gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`) %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1],by = join_by(Team))
-        p_length = ifelse(matchup_input == "-",10,50)
-        datatable(gl_df,
-                  options = list(
-                    pageLength = p_length,
-                    columnDefs = list(list(visible = FALSE, targets = 14))
-                  )) %>%
-          formatStyle(
-            columns = 1:(ncol(gl_df)-1),
-            valueColumns = "Hex",
-            backgroundColor = styleEqual(gl_df$Hex, gl_df$Hex),
-            color = "white"
-          )
+        if (matchup_input == "-"){
+          datatable(gl_df,
+                    options = list(
+                      pageLength = 10,
+                      columnDefs = list(list(visible = FALSE, targets = 14))
+                    )) %>%
+            formatStyle(
+              columns = 1:(ncol(gl_df)-1),
+              valueColumns = "Hex",
+              backgroundColor = styleEqual(gl_df$Hex, gl_df$Hex),
+              color = "white"
+            )
+        } else{
+          gl_df$Hex[which(gl_df$Team == team_map2(str_split(matchup_input," vs. ")[[1]][1]))] = "#808080"
+          datatable(gl_df,
+                    options = list(
+                      pageLength = 50,
+                      dom = 't', # Only show the table, without additional interface elements
+                      paging = FALSE, # Disable pagination
+                      searching = FALSE, # Disable the search box
+                      columnDefs = list(list(visible = FALSE, targets = 14))
+                    )) %>%
+            formatStyle(
+              columns = 1:(ncol(gl_df)-1),
+              valueColumns = "Hex",
+              backgroundColor = styleEqual(gl_df$Hex, gl_df$Hex),
+              color = "white"
+            )
+        }
       }
     })
   })

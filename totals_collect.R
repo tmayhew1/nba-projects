@@ -55,6 +55,7 @@ if (!exist_yn){
           # print("Data collected for:")
           # print(i)
         }
+        
       } else{
         print("Bad URL Status Code for:")
         print(i)
@@ -148,6 +149,7 @@ if (!exist_yn){
   
   va_df = df %>% left_join(summary, by = "Year") %>% mutate(
     valueAdd_1 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                  #  ((PTS)/((X2PA + X3PA) + TOV + (FTA/2.1)) - laPTSperPoss)*((X2PA + X3PA) + TOV + (FTA/2.1)) +
       PTSAdd + #points added (efficiency)
       (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
       (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
