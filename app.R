@@ -157,6 +157,14 @@ add_suffix <- function(x){
 zero = function(input){
   return(0)
 }
+dts = function(date){
+  if (month(date)>=9){
+    season = paste0(year(date),"-",year(date)+1)
+  } else {
+    season = paste0(year(date)-1,"-",year(date))
+  }
+  return(season)
+}
 
 # Define UI for application
 ui = 
@@ -867,32 +875,59 @@ server <- function(input, output, session) {
       gl_df = gl_df %>% inner_join(calc %>% select(Player,X3PAdd,X2PAdd,FTAdd,valueAdd,fPTS),
                                    by = join_by(Player)) %>% 
         arrange(desc(valueAdd)) %>% select(Player, Team, MP, valueAdd,everything())
-      
-      datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`),
-                options = list(
-                  pageLength = 50,
-                  dom = 't', # Only show the table, without additional interface elements
-                  paging = FALSE, # Disable pagination
-                  searching = FALSE # Disable the search box
-                  
-                )) %>% 
-        formatStyle(
-          'Team', 
-          target = 'row', 
-          backgroundColor = styleEqual(
-            c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
-            c(lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25), "lightgrey")),
-          color = styleEqual(
-            c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
-            c("white", "black")
+      if ("+/-" %in% names(gl_df)){
+        datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2), `+/-`),
+                  options = list(
+                    pageLength = 50,
+                    dom = 't', # Only show the table, without additional interface elements
+                    paging = FALSE, # Disable pagination
+                    searching = FALSE # Disable the search box
+                    
+                  )) %>% 
+          formatStyle(
+            'Team', 
+            target = 'row', 
+            backgroundColor = styleEqual(
+              c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+              c(lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25), "lightgrey")),
+            color = styleEqual(
+              c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+              c("white", "black")
+            )
+          ) %>% 
+          formatStyle(
+            'Player',
+            target = 'row',
+            backgroundColor = styleEqual(input$player_input_2, "gold"),
+            color = styleEqual(input$player_input_2, "black")
           )
-        ) %>% 
-        formatStyle(
-          'Player',
-          target = 'row',
-          backgroundColor = styleEqual(input$player_input_2, "gold"),
-          color = styleEqual(input$player_input_2, "black")
-        )
+      } else{
+        datatable(gl_df %>% transmute(Player, Team, MP = round(MP,2), PTS, TRB, AST, BLK, STL, TOV, FG = paste0(FG,"/",FGA), `3P` = paste0(`3P`,"/",`3PA`), VA = round(valueAdd,2)),
+                  options = list(
+                    pageLength = 50,
+                    dom = 't', # Only show the table, without additional interface elements
+                    paging = FALSE, # Disable pagination
+                    searching = FALSE # Disable the search box
+                    
+                  )) %>% 
+          formatStyle(
+            'Team', 
+            target = 'row', 
+            backgroundColor = styleEqual(
+              c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+              c(lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25), "lightgrey")),
+            color = styleEqual(
+              c(team_map(team_input), str_split(date_input_2,"\\)| ")[[1]][3]),
+              c("white", "black")
+            )
+          ) %>% 
+          formatStyle(
+            'Player',
+            target = 'row',
+            backgroundColor = styleEqual(input$player_input_2, "gold"),
+            color = styleEqual(input$player_input_2, "black")
+          )
+      }
     })
   })
   
@@ -941,6 +976,22 @@ server <- function(input, output, session) {
           scale_x_continuous(limits = c(min(gl_df$`+/-`)-((abs(min(gl_df$`+/-`)))/5),max(max(gl_df$`+/-`)+((abs(max(gl_df$`+/-`))/5)),0)))
         
       } else{
+        #df %>% separate(Player,into = c("Player","key"),sep = " \\(") %>% select(-key) %>% inner_join(calc %>% mutate(Year = dts(date_input_3)) %>% select(Year,Player))
+        season_avgs = df %>% filter(grepl(player_input_2,Player),Year == dts(date_input_2)) %>% 
+          transmute(
+            `Scoring (Volume)` = vaPTSv/G
+            ,`Efficiency (3P)` = (3*X3PAdd)/G
+            ,`Efficiency (2P)` = (2*X2PAdd)/G
+            ,`Efficiency (FT)` = FTAdd/G
+            ,`Assists` = vaAST/G
+            ,`Steals` = vaSTL/G
+            ,`Blocks` = vaBLK/G
+            ,`Turnovers` = vaTOV/G
+            ,`Rebounds (D)` = vaDRB/G
+            ,`Rebounds (O)` = vaORB/G
+          ) %>% gather(key = "key",value = "value") %>% 
+          mutate(abs = (value))
+        
         sp_output = calc %>% filter(Player == player_input_2) %>% 
           transmute(
             `Scoring (Volume)` = ((PTS/MP)-laPTSperM)*(MP)
@@ -954,14 +1005,36 @@ server <- function(input, output, session) {
             ,`Rebounds (D)` = (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate)
             ,`Rebounds (O)` = (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate)
           ) %>% gather(key = "key",value = "value") %>% 
-          mutate(abs = (value),col_n = ifelse(value > 0,lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25),"lightgrey")) %>% arrange(desc(abs))
+          mutate(abs = ifelse(as.double(value)>0,value,0),col_n = ifelse(value > 0,lighten_color(df$Hex[which(df$Team==team_map(team_input))[1]],.25),"lightgrey")) %>% 
+          data.frame(label = c(paste0(" PTS: ",calc$PTS[which(calc$Player==player_input_2)])
+                               ,paste0(" 3P: ",calc$`3P`[which(calc$Player==player_input_2)],"/",calc$`3PA`[which(calc$Player==player_input_2)])
+                               ,paste0(" 2P: ",calc$X2P[which(calc$Player==player_input_2)],"/",calc$X2PA[which(calc$Player==player_input_2)])
+                               ,paste0(" FT: ",calc$FT[which(calc$Player==player_input_2)],"/",calc$FTA[which(calc$Player==player_input_2)])
+                               ,paste0(" AST: ",calc$AST[which(calc$Player==player_input_2)])
+                               ,paste0(" STL: ",calc$STL[which(calc$Player==player_input_2)])
+                               ,paste0(" BLK: ",calc$BLK[which(calc$Player==player_input_2)])
+                               ,paste0(" TOV: ",calc$TOV[which(calc$Player==player_input_2)])
+                               ,paste0(" DRB: ",calc$DRB[which(calc$Player==player_input_2)])
+                               ,paste0(" ORB: ",calc$ORB[which(calc$Player==player_input_2)])
+                               )) %>% 
+          arrange(desc(value))
         sp_output$key = factor(sp_output$key,levels = rev(sp_output$key))
-        sp_output %>% ggplot(aes(x = key, y = abs, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
+        sp_output %>% ggplot(aes(x = key, y = value, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
           theme_bw() + geom_hline(yintercept = 0) + coord_flip() +
-          scale_y_continuous("Value Added") + scale_x_discrete("") + 
-          scale_fill_manual(values = unique(c(sp_output$col_n))) + 
-          theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice)
+          #scale_y_continuous("Value Added") + 
+          scale_y_continuous(
+            name = "Value Added",
+            breaks = pretty(sp_output$value),  # or use a custom vector like c(-10, 0, 10)
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            limits = c(NA,max(max(sp_output$value)+((abs(max(sp_output$value))/9.5)),0))
+          ) + scale_x_discrete("") + scale_fill_manual(values = unique(c(sp_output$col_n))) + 
+          theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice) + 
+          geom_text(aes(y = abs,label = label),hjust = 0,fontface="bold") +
+          geom_bar(data = season_avgs,aes(x = key, y = value),stat = "identity",width = I(.075),fill = "black",alpha = I(.3)) + 
+          geom_point(data = season_avgs,aes(x = key, y = value),size = 3,alpha = I(.25),inherit.aes = FALSE)
+        
       }
+      
     })
   })
   
