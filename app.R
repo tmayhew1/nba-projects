@@ -1,4 +1,3 @@
-library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny)
 source("totals_collect.R") # totals_collect.R must be run!
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
@@ -856,7 +855,8 @@ server <- function(input, output, session) {
       gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
       gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
       if (T){
-        calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+        calc = gl_df %>% mutate(Year = str_split(dts(str_split(date_input_2," ")[[1]][1]),"-")[[1]][2]) %>% 
+          inner_join(lga, by = join_by(Year))
         calc = calc %>% mutate(
           X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
           X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
@@ -947,7 +947,8 @@ server <- function(input, output, session) {
       gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
       gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
       if (T){
-        calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+        calc = gl_df %>% mutate(Year = str_split(dts(str_split(date_input_2," ")[[1]][1]),"-")[[1]][2]) %>% 
+          inner_join(lga, by = join_by(Year))
         calc = calc %>% mutate(
           X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
           X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
@@ -1026,7 +1027,7 @@ server <- function(input, output, session) {
             name = "Value Added",
             breaks = pretty(sp_output$value),  # or use a custom vector like c(-10, 0, 10)
             labels = function(x) ifelse(x == 0, "League Average", x),
-            limits = c(NA,max(max(sp_output$value)+((abs(max(sp_output$value))/9.5)),0))
+            expand = expansion(mult = c(0.1, 0.1))  # 10% padding above the max
           ) + scale_x_discrete("") + scale_fill_manual(values = unique(c(sp_output$col_n))) + 
           theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice) + 
           geom_text(aes(y = abs,label = label),hjust = 0,fontface="bold") +

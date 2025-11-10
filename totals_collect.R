@@ -1,6 +1,8 @@
 library(tidyverse); library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes)
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 exist_yn = ifelse(file.exists(today_file),T,F)
+median_perM = function(df, stat_cols, year_col = "Year", minutes_col = "MP") {df %>% filter(!is.na(.data[[minutes_col]])) %>% mutate(across(all_of(stat_cols), ~ .x / .data[[minutes_col]], .names = "la{.col}perM")) %>% group_by(.data[[year_col]]) %>% summarise(across(ends_with("perM"), ~ median(.x, na.rm = TRUE)), .groups = "drop")}
+
 if (!exist_yn){
   for (i in 1950:(as.numeric(format(Sys.Date(), "%Y"))+1)){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= (as.numeric(format(Sys.Date(), "%Y"))) & i!= (as.numeric(format(Sys.Date(), "%Y"))+1)){
@@ -104,39 +106,36 @@ if (!exist_yn){
   
   all_data_standard = all_data_standard %>% mutate(Year = paste0(Year-1,"-",Year), Player = paste0(Player, " (", key, ")")) %>% select(-key)
   df = all_data_standard %>% as_tibble()
-  summary = df %>% group_by(Year) %>% 
-    summarise(.groups = "drop"
-              ,PTS = sum(PTS)
-              ,TRB = sum(TRB)
-              ,DRB = sum(DRB)
-              ,ORB = sum(ORB)
-              ,AST = sum(AST)
-              ,STL = sum(STL)
-              ,BLK = sum(BLK)
-              ,TOV = sum(TOV)
-              ,MP = sum(MP)
-              ,X3PA = sum(X3PA)
-              ,X3P = sum(X3P)
-              ,X2PA = sum(X2PA)
-              ,X2P = sum(X2P)
-              ,FT = sum(FT)
-              ,FTA = sum(FTA)
-    ) %>% transmute(Year
-                    ,laPTSperM = PTS/MP
-                    ,laTRBperM = TRB/MP
-                    ,laDRBperM = DRB/MP
-                    ,laORBperM = ORB/MP
-                    ,laASTperM = AST/MP
-                    ,laSTLperM = STL/MP
-                    ,laBLKperM = BLK/MP
-                    ,laTOVperM = TOV/MP
-                    ,laPTSperMake = ifelse(is.na(X3PA),2,((3*X3P)+(2*X2P))/(X3P + X2P)) 
-                    ,laPTSperPoss = (PTS)/((X2PA + X3PA) + TOV + (FTA/2.1))
-                    ,laORBrate = (ORB/TRB)
-                    ,laDRBrate = (DRB/TRB)
-                    ,la3P. = (X3P/X3PA)
-                    ,la2P. = (X2P/X2PA)
-                    ,laFT. = (FT/FTA)
+  
+  summary = df %>%
+    group_by(Year) %>%
+    summarise(
+      .groups = "drop",
+      PTS  = sum(PTS),
+      TRB  = sum(TRB),
+      DRB  = sum(DRB),
+      ORB  = sum(ORB),
+      TOV  = sum(TOV),
+      X3PA = sum(X3PA),
+      X3P  = sum(X3P),
+      X2PA = sum(X2PA),
+      X2P  = sum(X2P),
+      FT   = sum(FT),
+      FTA  = sum(FTA)
+    ) %>%
+    transmute(
+      Year,
+      laPTSperMake  = ifelse(is.na(X3PA), 2, ((3 * X3P) + (2 * X2P)) / (X3P + X2P)),
+      laPTSperPoss  = PTS / ((X2PA + X3PA) + TOV + (FTA / 2.1)),
+      laORBrate     = ORB / TRB,
+      laDRBrate     = DRB / TRB,
+      la3P.         = X3P / X3PA,
+      la2P.         = X2P / X2PA,
+      laFT.         = FT / FTA
+    ) %>%
+    left_join(
+      median_perM(df, c("PTS", "TRB", "DRB", "ORB", "AST", "STL", "BLK", "TOV")),
+      by = join_by(Year)
     )
   
   summary %>% write.csv("Complete Data/avgsSummary.csv")
@@ -149,7 +148,7 @@ if (!exist_yn){
   
   va_df = df %>% left_join(summary, by = "Year") %>% mutate(
     valueAdd_1 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-                  #  ((PTS)/((X2PA + X3PA) + TOV + (FTA/2.1)) - laPTSperPoss)*((X2PA + X3PA) + TOV + (FTA/2.1)) +
+      #  ((PTS)/((X2PA + X3PA) + TOV + (FTA/2.1)) - laPTSperPoss)*((X2PA + X3PA) + TOV + (FTA/2.1)) +
       PTSAdd + #points added (efficiency)
       (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
       (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
