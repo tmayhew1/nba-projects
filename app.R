@@ -1,3 +1,4 @@
+library(tidyverse);library(lubridate);library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny)
 source("totals_collect.R") # totals_collect.R must be run!
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
