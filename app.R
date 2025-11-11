@@ -1028,7 +1028,7 @@ server <- function(input, output, session) {
             name = "Value Added",
             breaks = pretty(sp_output$value),  # or use a custom vector like c(-10, 0, 10)
             labels = function(x) ifelse(x == 0, "League Average", x),
-            expand = expansion(mult = c(0.1, 0.1))  # 10% padding above the max
+            expand = expansion(mult = c(0.1, 0.2))  # 10% padding above the max
           ) + scale_x_discrete("") + scale_fill_manual(values = unique(c(sp_output$col_n))) + 
           theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice) + 
           geom_text(aes(y = abs,label = label),hjust = 0,fontface="bold") +
