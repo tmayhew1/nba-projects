@@ -7,7 +7,9 @@ df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
 df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
 df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
 
-lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything()) %>% as_tibble()
+lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% as_tibble()
+#lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything()) %>% as_tibble()
+
 menu_map = function(input){
   map = read.csv("Complete Data/menu_options.csv")[,-1]
   return(map$col_name[which(map$display_name == input)])
@@ -158,12 +160,11 @@ zero = function(input){
   return(0)
 }
 dts = function(date){
-  if (month(date)>=9){
-    season = paste0(year(date),"-",year(date)+1)
-  } else {
-    season = paste0(year(date)-1,"-",year(date))
-  }
-  return(season)
+  ifelse(
+    month(date) >= 9,
+    paste0(year(date), "-", year(date) + 1),
+    paste0(year(date) - 1, "-", year(date))
+  )
 }
 
 # Define UI for application
@@ -393,8 +394,9 @@ server <- function(input, output, session) {
       p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
       cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
     }
+    
     cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
@@ -462,7 +464,8 @@ server <- function(input, output, session) {
       cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
     }
     cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
+    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
@@ -563,7 +566,8 @@ server <- function(input, output, session) {
       cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
     }
     cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
@@ -658,7 +662,8 @@ server <- function(input, output, session) {
     }
     
     cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
@@ -856,7 +861,7 @@ server <- function(input, output, session) {
       gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
       gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
       if (T){
-        calc = gl_df %>% mutate(Year = str_split(dts(str_split(date_input_2," ")[[1]][1]),"-")[[1]][2]) %>% 
+        calc = gl_df %>% mutate(Year = dts(date_input_2)) %>% 
           inner_join(lga, by = join_by(Year))
         calc = calc %>% mutate(
           X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
@@ -948,7 +953,7 @@ server <- function(input, output, session) {
       gl_df = team_sg(abb = team_map(team_input),ilink = ilink,date_choice = date_input_2)
       gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
       if (T){
-        calc = gl_df %>% mutate(Year = str_split(dts(str_split(date_input_2," ")[[1]][1]),"-")[[1]][2]) %>% 
+        calc = gl_df %>% mutate(Year = dts(date_input_2)) %>% 
           inner_join(lga, by = join_by(Year))
         calc = calc %>% mutate(
           X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
@@ -1083,7 +1088,7 @@ server <- function(input, output, session) {
                 collect_perf = gl_df[0, ]  # Preallocate with structure
               }
               
-              calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1)) %>%
+              calc = gl_df %>% mutate(Year = dts(date_input_3)) %>% inner_join(lga, by = "Year") %>%
                 mutate(
                   X3PAdd = ((`3P` / ifelse(`3PA` == 0, 1, `3PA`)) - la3P.) * `3PA`,
                   X2PAdd = ((X2P / ifelse(X2PA == 0, 1, X2PA)) - la2P.) * X2PA,
@@ -1112,7 +1117,7 @@ server <- function(input, output, session) {
             names(dail_df)[which(names(dail_df)=="Tm")] = 'Team'
             dail_df = dail_df %>% separate(col = MP, into = c("MP", "SP"),sep = "\\:") %>% mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP)
             if (T){
-              calc = dail_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+              calc = dail_df %>% mutate(Year = dts(date_input_3)) %>% inner_join(lga, by = "Year")
               calc = calc %>% mutate(across(-c("Player","Team","Opp"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
               
               calc = calc %>% mutate(
@@ -1141,7 +1146,8 @@ server <- function(input, output, session) {
           gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`) %>% group_by(Player,Team) %>% summarise(.groups = "drop",across(everything(),sum))
           
           if (T){
-            calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            #calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            calc = gl_df %>% mutate(Year = dts(date_input_3)) %>% inner_join(lga, by = "Year")
             calc = calc %>% mutate(
               X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
               X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
@@ -1213,7 +1219,8 @@ server <- function(input, output, session) {
             mutate(MP = as.double(MP)+(as.double(SP)/60)) %>% select(-SP) %>% 
             mutate(across(-c("Player","Team","Opp"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`)
           if (T){
-            calc = dail_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            #calc = dail_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+            calc = dail_df %>% mutate(Year = dts(date_input_3)) %>% inner_join(lga, by = "Year")
             calc = calc %>% mutate(
               X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
               X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
@@ -1260,7 +1267,8 @@ server <- function(input, output, session) {
         gl_df = gl_df %>% mutate(across(-c("Player","Team"),as.double),X2P = FG-`3P`,X2PA = FGA-`3PA`) %>% group_by(Player,Team) %>% summarise(.groups = "drop",across(everything(),sum))
         
         if (T){
-          calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+          #calc = gl_df %>% cbind.data.frame(lga %>% arrange(Year) %>% tail(1))
+          calc = gl_df %>% mutate(Year = dts(date_input_3)) %>% inner_join(lga, by = "Year")
           calc = calc %>% mutate(
             X3PAdd = ((`3P`/ifelse(`3PA`==0,1,`3PA`))-(la3P.))*(`3PA`),
             X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),
