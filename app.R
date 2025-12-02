@@ -259,7 +259,7 @@ ui =
                                      ,column(
                                        width = 12,
                                        fluidRow(
-                                         column(2, dateInput("date_input_3","Date:",value = as.Date(Sys.time() %>% as.POSIXct(tz = "America/New_York")-days(1))))
+                                         column(2, dateInput("date_input_3","Date:",value = as.Date(Sys.time(), tz = "America/Los_Angeles") - 1))
                                          ,column(3, selectInput("matchup_input", "Game:", choices = NULL, selected = ""))
                                          ,column(3, selectInput("period_input", "Period: ", choices = c("Game","1st Quarter","2nd Quarter","1st Half","3rd Quarter","4th Quarter","2nd Half","OT"), selected = "Game"))
                                          ,br(),column(2, actionButton("run_2","Load/Reload", class = "btn-lg")),
@@ -400,7 +400,7 @@ server <- function(input, output, session) {
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                            -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -469,7 +469,7 @@ server <- function(input, output, session) {
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                            -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -477,7 +477,7 @@ server <- function(input, output, session) {
                            (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
                          fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
                          ,tenPTS = ifelse(PTS>9,1,0),tenTRB = ifelse(TRB>9,1,0),tenAST = ifelse(AST>9,1,0),tenSTL = ifelse(STL>9,1,0),tenBLK = ifelse(BLK>9,1,0)) %>% 
-      mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK) %>% 
+      mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK,PTSAdd = (3*X3PAdd)+(2*X2PAdd)+FTAdd) %>% 
       mutate(fPTS2 = (.5*PTS) + (TRB) + (AST) + (2*(STL)) + (2*(BLK)) + (-1*(TOV)) + (.5*X3P) +
                ifelse(sum10s > 1,1,0) + # double-double bonus
                ifelse(sum10s > 2,2,0) + # triple-double bonus
@@ -496,12 +496,33 @@ server <- function(input, output, session) {
         static$Stat_ra = NA
         for (i in 1:nrow(static)){
           if (static$G[i]<ra){
-            static$Stat_ra[i] = NA
+            ll = 1
+            if (length(which(static$G==1))!=1){
+              ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
+            }
+            static$Stat_ra[i] = (sum(static$Make[ll:(ll+ra)]))/((sum(static$Att[ll:i])))
           } else{
             static$Stat_ra[i] = (sum(static$Make[(i-ra+1):(i)]))/((sum(static$Att[(i-ra+1):(i)])))
           }
         }
       }
+      static$Seas = dts(static$Date);szns = unique(static$Seas)
+      if (length(szns)!=1){
+        static_1 = static[which(static$Player == static$Player[1]),]
+        static_2 = static[which(static$Player == static$Player[nrow(static)]),]
+        if (static_1$Player[1] == static_2$Player[1]){
+          g_diff = which(static_1$Seas == szns[2])[1]
+          static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
+          static = static_1
+        } else{
+          g_diff_1 = which(static_1$Seas == szns[2])[1]
+          static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
+          g_diff_2 = which(static_2$Seas == szns[2])[1]
+          static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
+          static = rbind.data.frame(static_1,static_2)
+        }
+      }
+      
     } else{
       static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
       names(static)[ncol(static)] = "Stat"
@@ -512,32 +533,74 @@ server <- function(input, output, session) {
         static$Stat_ra = NA
         for (i in 1:nrow(static)){
           if (static$G[i]<ra){
-            static$Stat_ra[i] = NA
+            ll = 1
+            if (length(which(static$G==1))!=1){
+              ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
+            }
+            static$Stat_ra[i] = mean(static$Stat[ll:(ll+ra)])
           } else{
             static$Stat_ra[i] = mean(static$Stat[(i-ra+1):(i)])
           }
         }
       }
+      static$Seas = dts(static$Date);szns = unique(static$Seas)
+      if (length(szns)!=1){
+        static_1 = static[which(static$Player == static$Player[1]),]
+        static_2 = static[which(static$Player == static$Player[nrow(static)]),]
+        if (static_1$Player[1] == static_2$Player[1]){
+          g_diff = which(static_1$Seas == szns[2])[1]
+          static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
+          static = static_1
+        } else{
+          g_diff_1 = which(static_1$Seas == szns[2])[1]
+          static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
+          g_diff_2 = which(static_2$Seas == szns[2])[1]
+          static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
+          static = rbind.data.frame(static_1,static_2)
+        }
+      }
+      
     }
-    static_line = static %>% filter(!is.na(Stat_ra))
+    
+    static_line = static
     static_line = static_line %>% mutate(dateDisp = ifelse((G %in% c(ra,max(static_line$G))|Stat_ra == max(static_line$Stat_ra)),format(Date, "%m/%d/%y"),""))
     static_line$Player = factor(x = static_line$Player, levels = c(p1_df$Player[1],p2_df$Player[2]))
     if (ra > nrow(p1_df)){
-      plot = data.frame(Error = "At least one player selected has not played enough games in the time period. Reduce rolling average or update timeframe.") %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
+      plot = data.frame(Error = paste0("At least one player selected has not played enough games in the time period. \n Reduce rolling average (currently ",ra,") or update time period.")) %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
     } else{
-      if (ra==1){
-        plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-          geom_line() + scale_y_continuous(name = stat_input) +
-          scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-          theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-          scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
-          geom_point()
+      if (date_input == 'Past year (365 days)'){
+        if (ra==1){
+          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+            geom_line() + scale_y_continuous(name = stat_input) +
+            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+            scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
+            geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) + 
+            geom_point()
+          
+        } else{
+          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+            geom_line() + scale_y_continuous(name = stat_input) +
+            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+            scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
+            geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+        }
       } else{
-        plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-          geom_line() + scale_y_continuous(name = stat_input) +
-          scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-          theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-          scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+        if (ra==1){
+          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+            geom_line() + scale_y_continuous(name = stat_input) +
+            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+            scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
+            geom_point()
+        } else{
+          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+            geom_line() + scale_y_continuous(name = stat_input) +
+            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+            scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+        }
       }
     }
     
@@ -571,7 +634,7 @@ server <- function(input, output, session) {
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                            -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -667,7 +730,7 @@ server <- function(input, output, session) {
     cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                          valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                            ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                            (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                            (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                            (-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)) + #turnovers added
@@ -869,7 +932,7 @@ server <- function(input, output, session) {
           FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
             -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -961,7 +1024,7 @@ server <- function(input, output, session) {
           FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+            (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
             -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -1005,7 +1068,7 @@ server <- function(input, output, session) {
             ,`Efficiency (3P)` = (3*X3PAdd)
             ,`Efficiency (2P)` = (2*X2PAdd)
             ,`Efficiency (FT)` = FTAdd
-            ,`Assists` = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5)
+            ,`Assists` = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.)
             ,`Steals` = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss)
             ,`Blocks` = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate)
             ,`Turnovers` = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)
@@ -1095,7 +1158,7 @@ server <- function(input, output, session) {
                   FTAdd = ((FT / ifelse(FTA == 0, 1, FTA)) - laFT.) * FTA,
                   valueAdd = ((PTS / MP) - laPTSperM) * MP +
                     ((3 * X3PAdd) + (2 * X2PAdd) + FTAdd) +
-                    (((AST / MP) - laASTperM) * MP) * laPTSperMake * 0.5 +
+                    (((AST / MP) - laASTperM) * MP) * laPTSperMake * (1-laFG.) +
                     (((STL / MP) - laSTLperM) * MP) * laPTSperPoss +
                     (((BLK / MP) - laBLKperM) * MP) * laPTSperPoss * laDRBrate +
                     -1 * (((TOV / MP) - laTOVperM) * MP) * laPTSperPoss +
@@ -1126,7 +1189,7 @@ server <- function(input, output, session) {
                 FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
                 valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                   ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                  (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                  (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                   (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                   (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                   -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -1154,7 +1217,7 @@ server <- function(input, output, session) {
               FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
               valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                 ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                 (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                 (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                 -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -1227,7 +1290,7 @@ server <- function(input, output, session) {
               FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
               valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
                 ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+                (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
                 (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
                 (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
                 -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -1275,7 +1338,7 @@ server <- function(input, output, session) {
             FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
             valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
               ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-              (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+              (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
               (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
               (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
               -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added

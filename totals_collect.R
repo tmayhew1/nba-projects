@@ -121,7 +121,9 @@ if (!exist_yn){
       X2PA = sum(X2PA),
       X2P  = sum(X2P),
       FT   = sum(FT),
-      FTA  = sum(FTA)
+      FTA  = sum(FTA),
+      FG = sum(FG),
+      FGA = sum(FGA)
     ) %>%
     transmute(
       Year,
@@ -131,7 +133,8 @@ if (!exist_yn){
       laDRBrate     = DRB / TRB,
       la3P.         = X3P / X3PA,
       la2P.         = X2P / X2PA,
-      laFT.         = FT / FTA
+      laFT.         = FT / FTA,
+      laFG.         = FG / FGA
     ) %>%
     left_join(
       median_perM(df, c("PTS", "TRB", "DRB", "ORB", "AST", "STL", "BLK", "TOV")),
@@ -148,9 +151,8 @@ if (!exist_yn){
   
   va_df = df %>% left_join(summary, by = "Year") %>% mutate(
     valueAdd_1 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-      #  ((PTS)/((X2PA + X3PA) + TOV + (FTA/2.1)) - laPTSperPoss)*((X2PA + X3PA) + TOV + (FTA/2.1)) +
       PTSAdd + #points added (efficiency)
-      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
       (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
       (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
       -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -159,7 +161,7 @@ if (!exist_yn){
     
     valueAdd_2 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)               #fixes 74-77
       PTSAdd + #points added (efficiency)
-      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
       (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
       (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
       #-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
@@ -168,13 +170,13 @@ if (!exist_yn){
     
     valueAdd_3 = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)               #fixes 52-73
       PTSAdd + #points added (efficiency)
-      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) + #assists added
+      (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
       #-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
       (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.28)*(0.72) + #(est) d rebounds added
       (((TRB/MP)-(laTRBperM))*(MP))*(laPTSperPoss)*(0.72)*(0.28), #(est) o rebounds added
     
     vaPTSv = ((PTS/MP)-(laPTSperM))*(MP) #points added (volume)
-    ,vaAST = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(0.5) #assists added
+    ,vaAST = (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) #assists added
     ,vaSTL = (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) #steals added
     ,vaBLK = (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) #blocks added
     ,vaTOV = -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) #turnovers added
