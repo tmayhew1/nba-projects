@@ -1,4 +1,4 @@
-library(tidyverse);library(lubridate);library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny)
+library(tidyverse);library(lubridate);library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny); library(patchwork); library(shinyjs)
 source("totals_collect.R") # totals_collect.R must be run!
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
@@ -16,7 +16,7 @@ menu_map = function(input){
 }
 psearch = function(input){
   new = df %>% filter(grepl(input,Player))
-  return(new$Player %>% unique())
+  return(new$Player[1])
 }
 lsearch = function(player,year){
   key = str_split(player,"\\(|\\)")[[1]][2]; letter = str_split(key,"")[[1]][1]
@@ -62,8 +62,8 @@ glsearch = function(player,years){
   return(player_df)
 }
 lighten_color = function(color, factor = .25){
-  col_rgb <- col2rgb(color) / 255 
-  col_light <- (1 - factor) * col_rgb + factor * 1 
+  col_rgb = col2rgb(color) / 255 
+  col_light = (1 - factor) * col_rgb + factor * 1 
   rgb(col_light[1], col_light[2], col_light[3], maxColorValue = 1)
 }
 team_map = function(input){
@@ -148,9 +148,9 @@ daily_l = function(ilink_dl){
   ret_df = data.raw[[1]][,-c(which(names(data.raw[[1]])==""|grepl("\\%",names(data.raw[[1]]))))]
   return(ret_df %>% filter(Player != "Player"))
 }
-add_suffix <- function(x){
+add_suffix = function(x){
   x = as.integer(x)
-  suffix <- ifelse(x %% 100 %in% 11:13, "th",
+  suffix = ifelse(x %% 100 %in% 11:13, "th",
                    ifelse(x %% 10 == 1, "st",
                           ifelse(x %% 10 == 2, "nd",
                                  ifelse(x %% 10 == 3, "rd", "th"))))
@@ -169,8 +169,10 @@ dts = function(date){
 
 # Define UI for application
 ui = 
-  fluidPage(titlePanel("Trey's NBA Stats Stuff"),
-            tabsetPanel(type = "tabs",
+  fluidPage(useShinyjs(),
+            titlePanel("Trey's NBA Stats Stuff"),
+            tabsetPanel(id = "tabs",
+                        type = "tabs",
                         tabPanel("Player Comparison",
                                  fluidPage(
                                    titlePanel(h1("Active NBA Player Comparison", style = "font-size: 18px;")),
@@ -179,8 +181,9 @@ ui =
                                      column(
                                        width = 6,
                                        fluidRow(
-                                         column(6, selectizeInput("p1_input","Player 1:",choices = df$Player[which(df$Year==maxYr)],selected = df$Player[which(df$Year==maxYr)][1]), style = "font-size: 12px;"),
-                                         column(6, selectizeInput("p2_input","Player 2:",choices = c("-",df$Player[which(df$Year==maxYr)]),selected = "-"), style = "font-size: 12px;"),
+                                         column(4, selectizeInput("p1_input","Player 1:",choices = df$Player[which(df$Year==maxYr)],selected = df$Player[which(df$Year==maxYr)][1]), style = "font-size: 12px;"),
+                                         column(4, selectizeInput("p2_input","Player 2:",choices = c("-",df$Player[which(df$Year==maxYr)]),selected = "-"), style = "font-size: 12px;"),
+                                         column(2, tags$label(HTML("&nbsp;")), actionButton("pc_compare", "Load", class = "btn-primary btn-block"))
                                        ),
                                        fluidRow(
                                          column(4, selectInput("stat_input", "Statistic of Interest:", choices = rev(read.csv("Complete Data/menu_options.csv")[, ncol(read.csv("Complete Data/menu_options.csv"))]), selected = "Value Added"), style = "font-size: 12px;")
@@ -205,26 +208,79 @@ ui =
                                    ) 
                                  )
                         ),
+                        tabPanel("Four Factors Comparison",
+                                 fluidPage(
+                                   titlePanel(h1("Single Season Four Factors Comparison", style = "font-size: 18px;")),
+                                   mainPanel(
+                                     width = 12,
+                                     fluidRow(
+                                       column(3,
+                                              selectizeInput(
+                                                "sc_player1",
+                                                "Player 1:",
+                                                choices = NULL,
+                                                options = list(
+                                                  placeholder = 'Start typing player name...',
+                                                  onInitialize = I('function() { this.setValue(""); }')
+                                                )
+                                              )
+                                       ),
+                                       column(2,
+                                              selectInput(
+                                                "sc_year1",
+                                                "Season:",
+                                                choices = NULL
+                                              )
+                                       ),
+                                       column(3,
+                                              selectizeInput(
+                                                "sc_player2",
+                                                "Player 2:",
+                                                choices = NULL,
+                                                options = list(
+                                                  placeholder = 'Start typing player name...',
+                                                  onInitialize = I('function() { this.setValue(""); }')
+                                                )
+                                              )
+                                       ),
+                                       column(2,
+                                              selectInput(
+                                                "sc_year2",
+                                                "Season:",
+                                                choices = NULL
+                                              )
+                                       ),
+                                       column(2,
+                                              tags$label(HTML("&nbsp;")),
+                                              actionButton("sc_compare", "Compare Players", class = "btn-primary btn-block")
+                                       )
+                                     ),
+                                     hr(),
+                                     fluidRow(
+                                       column(12,
+                                              plotOutput("sc_comparison_plots", height = "800px")
+                                       )
+                                     )
+                                   )
+                                 )
+                        ),
                         tabPanel("Leaderboard",
                                  fluidPage(
                                    titlePanel(h1("NBA Season Leaderboard", style = "font-size: 18px;")),
                                    mainPanel(
                                      width = 12,
-                                     column(
-                                       width = 12,
-                                       fluidRow(
-                                         column(3, selectInput("year_input","Season:",choices = rev(unique(sort(df$Year))),selected = maxYr))
-                                         ,column(2, selectInput("stat_input_2", "Statistic of Interest:", choices = rev(read.csv("Complete Data/menu_options_2.csv")[, ncol(read.csv("Complete Data/menu_options_2.csv"))]), selected = "Value Added"))
-                                         ,column(3, selectizeInput("player_input", "Player (optional):",choices = NULL,selected = ""))
-                                         ,column(2, selectInput("reg_playoff","",choices = c("Regular Season","Playoffs"),selected = "Regular Season"))
-                                         #,column(2, switchInput("pg_factor", "Per game?", value = TRUE),textOutput("toggle_status"))
-                                         ,br()
-                                         ,column(2, switchInput("pg_factor", "Per/game?", value = T, size="small"),textOutput("toggle_status"))
-                                       ),
-                                       fluidRow(
-                                         column(5, plotOutput("plot3"))
-                                         ,column(width = 7, DTOutput("table3"))
-                                       )
+                                     fluidRow(
+                                       column(2, selectInput("year_input","Season:",choices = rev(unique(sort(df$Year))),selected = maxYr)),
+                                       column(2, selectInput("stat_input_2", "Statistic:", choices = rev(read.csv("Complete Data/menu_options_2.csv")[, ncol(read.csv("Complete Data/menu_options_2.csv"))]), selected = "Value Added")),
+                                       column(3, selectizeInput("player_input", "Player (optional):",choices = NULL,selected = "")),
+                                       column(1, tags$label(HTML("&nbsp;")), actionButton("lb_load", "Load", class = "btn-primary btn-block")),
+                                       column(2, selectInput("reg_playoff","Type:",choices = c("Regular Season","Playoffs"),selected = "Regular Season")),
+                                       column(2, tags$label(HTML("&nbsp;")), switchInput("pg_factor", "Per/game?", value = T, size="small"))
+                                     ),
+                                     hr(),
+                                     fluidRow(
+                                       column(5, plotOutput("plot3")),
+                                       column(width = 7, DTOutput("table3"))
                                      )
                                    )
                                  )
@@ -241,7 +297,7 @@ ui =
                                          ,column(2, selectInput("team_input", "Team:", choices = sort((read.csv("Complete Data/team_abbreviations.csv") %>% filter(modern==1))[,3]), selected = "Los Angeles Lakers"))
                                          ,column(3, selectizeInput("date_input_2", "Date:",choices = NULL,selected = ""))
                                          ,column(3, selectizeInput("player_input_2", "Player (optional):",choices = NULL,selected = ""))
-                                         ,br(),column(2, actionButton("run","Load/Reload", class = "btn-lg")),
+                                         ,br(),column(2, actionButton("run","Load", class = "btn-lg")),
                                        )
                                      )
                                      ,fluidRow(
@@ -262,7 +318,7 @@ ui =
                                          column(2, dateInput("date_input_3","Date:",value = as.Date(Sys.time(), tz = "America/Los_Angeles") - 1))
                                          ,column(3, selectInput("matchup_input", "Game:", choices = NULL, selected = ""))
                                          ,column(3, selectInput("period_input", "Period: ", choices = c("Game","1st Quarter","2nd Quarter","1st Half","3rd Quarter","4th Quarter","2nd Half","OT"), selected = "Game"))
-                                         ,br(),column(2, actionButton("run_2","Load/Reload", class = "btn-lg")),
+                                         ,br(),column(2, actionButton("run_2","Load", class = "btn-lg")),
                                        )
                                      )
                                      ,fluidRow(
@@ -271,8 +327,7 @@ ui =
                                      )
                                    )
                                  )
-                        )
-                        ,
+                        ),
                         tabPanel("Career Comparison",
                                  fluidPage(
                                    titlePanel(h1("NBA Player Career Comparison", style = "font-size: 18px;")),
@@ -309,7 +364,29 @@ ui =
   )
 
 # Define server logic
-server <- function(input, output, session) {
+server = function(input, output, session) {
+  
+  pc_loaded = reactiveVal(F)
+  lb_loaded = reactiveVal(F)
+  ff_loaded = reactiveVal(F)
+  # Auto-click buttons when switching tabs
+  observeEvent(input$tabs, {
+    if (input$tabs == "Player Comparison" && !pc_loaded()) {
+      click("pc_compare")
+      pc_loaded(T)
+      
+    } 
+    if (input$tabs == "Leaderboard" && !lb_loaded()) {
+      click("lb_load")
+      lb_loaded(T)
+      
+    } 
+    if (input$tabs == "Four Factors Comparison" && !ff_loaded()) {
+      click("sc_compare")
+      ff_loaded(T)
+      
+    }
+  })
   
   # Observe the "year" input on the Leaderboard tab and update the options in "player" based on that!
   observeEvent(input$year_input, {
@@ -380,531 +457,550 @@ server <- function(input, output, session) {
   
   # Table 2: Summary Statistics
   output$table2 = renderDT({
-    p1_df = p1_df();p2_df = p2_df();date_input = date_input()
-    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() < 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
-    
-    if (nrow(p2_df)==0){
-      # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
-      p1_df = p1_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
-      cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    } else{
-      # else: combine two player data frames!
-      p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
-      cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    }
-    
-    cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-                         valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-                           ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
-                           (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-                           (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-                           -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-                           (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-                           (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-                         fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-    )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
-    cdf$Player = factor(cdf$Player,levels = unique(cdf$Player))
-    
-    if (nrow(p2_df)==0){
-      cdf %>% group_by(Player) %>% summarise(.groups = "drop", G = formatC(n(),format = "f",digits=0),PTS = formatC(mean(PTS),format = "f",digits=1),TRB = round(mean(TRB),digits=1), AST = round(mean(AST),digits=1), STK = formatC(mean(STL+BLK),format = "f",digits=1), `FG%` = formatC(100*(sum(FG)/sum(FGA)),format = "f",digits=1), `3P%` = formatC(100*(sum(X3P)/sum(X3PA)),format = "f",digits=1), FGA = formatC(mean(FGA),format = "f",digits=1)) %>% 
-        datatable(
-          options = 
-            list(dom = 't', # Only show the table, without additional interface elements
-                 paging = FALSE, # Disable pagination
-                 searching = FALSE # Disable the search box 
-            )
-        )
+    req(input$pc_compare)
+    isolate({
+      p1_df = p1_df();p2_df = p2_df();date_input = date_input()
+      min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() < 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
       
-    } else{
-      cdf %>% group_by(Player) %>% summarise(.groups = "drop", G = formatC(n(),format = "f",digits=0),PTS = formatC(mean(PTS),format = "f",digits=1),TRB = round(mean(TRB),digits=1), AST = round(mean(AST),digits=1), STK = formatC(mean(STL+BLK),format = "f",digits=1), `FG%` = formatC(100*(sum(FG)/sum(FGA)),format = "f",digits=1), `3P%` = formatC(100*(sum(X3P)/sum(X3PA)),format = "f",digits=1), FGA = formatC(mean(FGA),format = "f",digits=1), vapg_sort = mean(valueAdd)) %>% arrange(desc(vapg_sort)) %>% select(-vapg_sort) %>% 
-        datatable(
-          options = 
-            list(dom = 't', # Only show the table, without additional interface elements
-                 paging = FALSE, # Disable pagination
-                 searching = FALSE # Disable the search box 
-            )
-        ) %>%
-        formatStyle(
-          'Player', 
-          target = 'row', 
-          backgroundColor = styleEqual(
-            c(p1_df$Player[1], p2_df$Player[1]), 
-            c(lighten_color(top_color$Hex[1],.25), "lightgrey")),
-          color = styleEqual(
-            c(p1_df$Player[1], p2_df$Player[1]), 
-            c("white", "black")
+      if (nrow(p2_df)==0){
+        # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+        p1_df = p1_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
+        cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      } else{
+        # else: combine two player data frames!
+        p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
+        cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      }
+      
+      cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
+      cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+                           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                             (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
+                             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                             -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                             (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                             (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+                           fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+      )
+      top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
+      cdf$Player = factor(cdf$Player,levels = unique(cdf$Player))
+      
+      if (nrow(p2_df)==0){
+        cdf %>% group_by(Player) %>% summarise(.groups = "drop", G = formatC(n(),format = "f",digits=0),PTS = formatC(mean(PTS),format = "f",digits=1),TRB = round(mean(TRB),digits=1), AST = round(mean(AST),digits=1), STK = formatC(mean(STL+BLK),format = "f",digits=1), `FG%` = formatC(100*(sum(FG)/sum(FGA)),format = "f",digits=1), `3P%` = formatC(100*(sum(X3P)/sum(X3PA)),format = "f",digits=1), FGA = formatC(mean(FGA),format = "f",digits=1)) %>% 
+          datatable(
+            options = 
+              list(dom = 't', # Only show the table, without additional interface elements
+                   paging = FALSE, # Disable pagination
+                   searching = FALSE # Disable the search box 
+              )
           )
-        )
-    }
+        
+      } else{
+        cdf %>% group_by(Player) %>% summarise(.groups = "drop", G = formatC(n(),format = "f",digits=0),PTS = formatC(mean(PTS),format = "f",digits=1),TRB = round(mean(TRB),digits=1), AST = round(mean(AST),digits=1), STK = formatC(mean(STL+BLK),format = "f",digits=1), `FG%` = formatC(100*(sum(FG)/sum(FGA)),format = "f",digits=1), `3P%` = formatC(100*(sum(X3P)/sum(X3PA)),format = "f",digits=1), FGA = formatC(mean(FGA),format = "f",digits=1), vapg_sort = mean(valueAdd)) %>% arrange(desc(vapg_sort)) %>% select(-vapg_sort) %>% 
+          datatable(
+            options = 
+              list(dom = 't', # Only show the table, without additional interface elements
+                   paging = FALSE, # Disable pagination
+                   searching = FALSE # Disable the search box 
+              )
+          ) %>%
+          formatStyle(
+            'Player', 
+            target = 'row', 
+            backgroundColor = styleEqual(
+              c(p1_df$Player[1], p2_df$Player[1]), 
+              c(lighten_color(top_color$Hex[1],.25), "lightgrey")),
+            color = styleEqual(
+              c(p1_df$Player[1], p2_df$Player[1]), 
+              c("white", "black")
+            )
+          )
+      }
+    })
   })
   
   # Plot 1: Rolling Average Statistics
-  output$plot1 <- renderPlot({
-    p1_df = p1_df();p2_df = p2_df();roll_avg_input = roll_avg_input();stat_input = stat_input();date_input = date_input()
-    #translate some inputs
-    stat_col = menu_map(stat_input)
-    ra = as.integer(roll_avg_input)
-    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
-    
-    if (nrow(p2_df)==0){
-      # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
-      p1_df = p1_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
-      cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    } else{
-      # else: combine two player data frames!
-      p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
-      cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    }
-    cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
-    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-                         valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-                           ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
-                           (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-                           (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-                           -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-                           (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-                           (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-                         fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-                         ,tenPTS = ifelse(PTS>9,1,0),tenTRB = ifelse(TRB>9,1,0),tenAST = ifelse(AST>9,1,0),tenSTL = ifelse(STL>9,1,0),tenBLK = ifelse(BLK>9,1,0)) %>% 
-      mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK,PTSAdd = (3*X3PAdd)+(2*X2PAdd)+FTAdd) %>% 
-      mutate(fPTS2 = (.5*PTS) + (TRB) + (AST) + (2*(STL)) + (2*(BLK)) + (-1*(TOV)) + (.5*X3P) +
-               ifelse(sum10s > 1,1,0) + # double-double bonus
-               ifelse(sum10s > 2,2,0) + # triple-double bonus
-               ifelse(PTS > 39,2,0) + # 40+ points bonus
-               ifelse(PTS > 49,2,0) # 50+ points bonus
-      )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
-    # modify Stat columns if stat_input is a percent!
-    if (grepl("[P|p]ercentage",stat_input)){
-      static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
-      names(static)[(ncol(static)-1):ncol(static)] = c("Make", "Att")
-      static$Stat = static$Make/static$Att
-      if (ra==1){
-        static$Stat_ra = static$Stat
+  output$plot1 = renderPlot({
+    req(input$pc_compare)
+    isolate({
+      p1_df = p1_df();p2_df = p2_df();roll_avg_input = roll_avg_input();stat_input = stat_input();date_input = date_input()
+      #translate some inputs
+      stat_col = menu_map(stat_input)
+      ra = as.integer(roll_avg_input)
+      min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
+      
+      if (nrow(p2_df)==0){
+        # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+        p1_df = p1_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
+        cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
       } else{
-        static$Stat_ra = NA
-        for (i in 1:nrow(static)){
-          if (static$G[i]<ra){
-            ll = 1
-            if (length(which(static$G==1))!=1){
-              ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
+        # else: combine two player data frames!
+        p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
+        cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      }
+      cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
+      cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
+      #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+                           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                             (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
+                             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                             -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                             (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                             (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+                           fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+                           ,tenPTS = ifelse(PTS>9,1,0),tenTRB = ifelse(TRB>9,1,0),tenAST = ifelse(AST>9,1,0),tenSTL = ifelse(STL>9,1,0),tenBLK = ifelse(BLK>9,1,0)) %>% 
+        mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK,PTSAdd = (3*X3PAdd)+(2*X2PAdd)+FTAdd) %>% 
+        mutate(fPTS2 = (.5*PTS) + (TRB) + (AST) + (2*(STL)) + (2*(BLK)) + (-1*(TOV)) + (.5*X3P) +
+                 ifelse(sum10s > 1,1,0) + # double-double bonus
+                 ifelse(sum10s > 2,2,0) + # triple-double bonus
+                 ifelse(PTS > 39,2,0) + # 40+ points bonus
+                 ifelse(PTS > 49,2,0) # 50+ points bonus
+        )
+      top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
+      # modify Stat columns if stat_input is a percent!
+      if (grepl("[P|p]ercentage",stat_input)){
+        static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
+        names(static)[(ncol(static)-1):ncol(static)] = c("Make", "Att")
+        static$Stat = static$Make/static$Att
+        if (ra==1){
+          static$Stat_ra = static$Stat
+        } else{
+          static$Stat_ra = NA
+          for (i in 1:nrow(static)){
+            if (static$G[i]<ra){
+              ll = 1
+              if (length(which(static$G==1))!=1){
+                ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
+              }
+              static$Stat_ra[i] = (sum(static$Make[ll:(ll-1+ra)]))/((sum(static$Att[ll:(ll-1+ra)])))
+            } else{
+              static$Stat_ra[i] = (sum(static$Make[(i-ra+1):(i)]))/((sum(static$Att[(i-ra+1):(i)])))
             }
-            static$Stat_ra[i] = (sum(static$Make[ll:(ll+ra)]))/((sum(static$Att[ll:i])))
+          }
+        }
+        static$Seas = dts(static$Date);szns = unique(static$Seas)
+        if (length(szns)!=1){
+          static_1 = static[which(static$Player == static$Player[1]),]
+          static_2 = static[which(static$Player == static$Player[nrow(static)]),]
+          if (static_1$Player[1] == static_2$Player[1]){
+            g_diff = which(static_1$Seas == szns[2])[1]
+            static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
+            static = static_1
           } else{
-            static$Stat_ra[i] = (sum(static$Make[(i-ra+1):(i)]))/((sum(static$Att[(i-ra+1):(i)])))
+            g_diff_1 = which(static_1$Seas == szns[2])[1]
+            static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
+            g_diff_2 = which(static_2$Seas == szns[2])[1]
+            static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
+            static = rbind.data.frame(static_1,static_2)
+          }
+        }
+        
+      } else{
+        static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
+        names(static)[ncol(static)] = "Stat"
+        static = static %>% mutate(Stat = as.double(Stat))
+        if (ra==1){
+          static$Stat_ra = static$Stat
+        } else{
+          static$Stat_ra = NA
+          for (i in 1:nrow(static)){
+            if (static$G[i]<ra){
+              ll = 1
+              if (length(which(static$G==1))!=1){
+                ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
+              }
+              static$Stat_ra[i] = mean(static$Stat[ll:((ll-1)+ra)])
+            } else{
+              static$Stat_ra[i] = mean(static$Stat[(i-ra+1):(i)])
+            }
+          }
+        }
+        static$Seas = dts(static$Date);szns = unique(static$Seas)
+        if (length(szns)!=1){
+          static_1 = static[which(static$Player == static$Player[1]),]
+          static_2 = static[which(static$Player == static$Player[nrow(static)]),]
+          if (static_1$Player[1] == static_2$Player[1]){
+            g_diff = which(static_1$Seas == szns[2])[1]
+            static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
+            static = static_1
+          } else{
+            g_diff_1 = which(static_1$Seas == szns[2])[1]
+            static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
+            g_diff_2 = which(static_2$Seas == szns[2])[1]
+            static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
+            static = rbind.data.frame(static_1,static_2)
+          }
+        }
+        
+      }
+      
+      static_line = static
+      static_line = static_line %>% mutate(dateDisp2 = ifelse((G %in% c(ra,max(static_line$G))|Stat_ra == max(static_line$Stat_ra)),format(Date, "%m/%d/%y"),""))
+      static_line = static_line %>% left_join(static_line %>% distinct(Stat_ra, .keep_all = T) %>% transmute(G, dateDisp = dateDisp2),by = join_by(G)) %>% select(-dateDisp2) %>% mutate(dateDisp = ifelse(is.na(dateDisp),"",dateDisp))
+      static_line$Player = factor(x = static_line$Player, levels = c(p1_df$Player[1],p2_df$Player[2]))
+      if (ra > nrow(p1_df)){
+        plot = data.frame(Error = paste0("At least one player selected has not played enough games in the time period. \n Reduce rolling average (currently ",ra,") or update time period.")) %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
+      } else{
+        if (date_input == 'Past year (365 days)'){
+          if (ra==1){
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+              geom_line() + scale_y_continuous(name = stat_input) +
+              scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+              theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+              scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
+              geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) + 
+              geom_point()
+            
+          } else{
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+              geom_line() + scale_y_continuous(name = stat_input) +
+              scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+              theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+              scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
+              geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
+          }
+        } else{
+          if (ra==1){
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+              geom_line() + scale_y_continuous(name = stat_input) +
+              scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+              theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+              scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
+              geom_point()
+          } else{
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
+              geom_line() + scale_y_continuous(name = stat_input) +
+              scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
+              theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
+              scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
           }
         }
       }
-      static$Seas = dts(static$Date);szns = unique(static$Seas)
-      if (length(szns)!=1){
-        static_1 = static[which(static$Player == static$Player[1]),]
-        static_2 = static[which(static$Player == static$Player[nrow(static)]),]
-        if (static_1$Player[1] == static_2$Player[1]){
-          g_diff = which(static_1$Seas == szns[2])[1]
-          static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
-          static = static_1
-        } else{
-          g_diff_1 = which(static_1$Seas == szns[2])[1]
-          static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
-          g_diff_2 = which(static_2$Seas == szns[2])[1]
-          static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
-          static = rbind.data.frame(static_1,static_2)
-        }
-      }
       
-    } else{
-      static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
-      names(static)[ncol(static)] = "Stat"
-      static = static %>% mutate(Stat = as.double(Stat))
-      if (ra==1){
-        static$Stat_ra = static$Stat
-      } else{
-        static$Stat_ra = NA
-        for (i in 1:nrow(static)){
-          if (static$G[i]<ra){
-            ll = 1
-            if (length(which(static$G==1))!=1){
-              ll = ifelse(i<which(static$G==1)[2],1,which(static$G==1)[2])
-            }
-            static$Stat_ra[i] = mean(static$Stat[ll:(ll+ra)])
-          } else{
-            static$Stat_ra[i] = mean(static$Stat[(i-ra+1):(i)])
-          }
-        }
-      }
-      static$Seas = dts(static$Date);szns = unique(static$Seas)
-      if (length(szns)!=1){
-        static_1 = static[which(static$Player == static$Player[1]),]
-        static_2 = static[which(static$Player == static$Player[nrow(static)]),]
-        if (static_1$Player[1] == static_2$Player[1]){
-          g_diff = which(static_1$Seas == szns[2])[1]
-          static_1$G = ifelse(static_1$G < g_diff,static_1$G - g_diff,static_1$G - (g_diff - 1))
-          static = static_1
-        } else{
-          g_diff_1 = which(static_1$Seas == szns[2])[1]
-          static_1$G = ifelse(static_1$G < g_diff_1,static_1$G - g_diff_1,static_1$G - (g_diff_1 - 1))
-          g_diff_2 = which(static_2$Seas == szns[2])[1]
-          static_2$G = ifelse(static_2$G < g_diff_2,static_2$G - g_diff_2,static_2$G - (g_diff_2 - 1))
-          static = rbind.data.frame(static_1,static_2)
-        }
-      }
-      
-    }
-    
-    static_line = static
-    static_line = static_line %>% mutate(dateDisp = ifelse((G %in% c(ra,max(static_line$G))|Stat_ra == max(static_line$Stat_ra)),format(Date, "%m/%d/%y"),""))
-    static_line$Player = factor(x = static_line$Player, levels = c(p1_df$Player[1],p2_df$Player[2]))
-    if (ra > nrow(p1_df)){
-      plot = data.frame(Error = paste0("At least one player selected has not played enough games in the time period. \n Reduce rolling average (currently ",ra,") or update time period.")) %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
-    } else{
-      if (date_input == 'Past year (365 days)'){
-        if (ra==1){
-          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
-            geom_line() + scale_y_continuous(name = stat_input) +
-            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-            scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
-            geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) + 
-            geom_point()
-          
-        } else{
-          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
-            geom_line() + scale_y_continuous(name = stat_input) +
-            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-            scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
-            geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
-        }
-      } else{
-        if (ra==1){
-          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-            geom_line() + scale_y_continuous(name = stat_input) +
-            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-            scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
-            geom_point()
-        } else{
-          plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-            geom_line() + scale_y_continuous(name = stat_input) +
-            scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
-            theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
-            scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
-        }
-      }
-    }
-    
-    plot
-    
+      plot
+    })
   })
   
   # Plot 2: Distribution Comparison
   output$plot2 = renderPlot({
-    p1_df = p1_df();p2_df = p2_df();stat_input = stat_input();date_input = date_input()
-    # ;roll_avg_input = roll_avg_input()
-    # translate some inputs
-    stat_col = menu_map(stat_input)
-    # ra = as.integer(roll_avg_input)
-    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
-    
-    if (nrow(p2_df)==0){
-      # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
-      p1_df = p1_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
-      cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    } else{
-      # else: combine two player data frames!
-      p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
-      cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    }
-    cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-                         valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-                           ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
-                           (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-                           (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-                           -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
-                           (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-                           (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-                         fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-                         ,tenPTS = ifelse(PTS>9,1,0),tenTRB = ifelse(TRB>9,1,0),tenAST = ifelse(AST>9,1,0),tenSTL = ifelse(STL>9,1,0),tenBLK = ifelse(BLK>9,1,0)) %>% 
-      mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK) %>% 
-      mutate(fPTS2 = (.5*PTS) + (TRB) + (AST) + (2*(STL)) + (2*(BLK)) + (-1*(TOV)) + (.5*X3P) +
-               ifelse(sum10s > 1,1,0) + # double-double bonus
-               ifelse(sum10s > 2,2,0) + # triple-double bonus
-               ifelse(PTS > 39,2,0) + # 40+ points bonus
-               ifelse(PTS > 49,2,0) # 50+ points bonus
-      )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
-    
-    # modify Stat columns if stat_input is a percent!
-    if (grepl("[P|p]ercentage",stat_input)){
-      static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
-      names(static)[(ncol(static)-1):ncol(static)] = c("Make", "Att")
-      static$Stat = static$Make/static$Att
-    } else{
-      static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
-      names(static)[ncol(static)] = "Stat"
-      static = static %>% mutate(Stat = as.double(Stat))
-    }
-    sim_p1 = c();sim_p2 = c();s1=c(static$Stat[which(static$Player==p1_df$Player[1])]);s2=c(static$Stat[which(static$Player==p2_df$Player[1])])
-    
-    for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = min(length(s1),5),replace = T)]))}
-    if (nrow(p2_df)==0){
-      # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
-      sim_p2 = c()
-      sims = data.frame(sim = sim_p1,Player = p1_df$Player[1])
-      # add a sample size (games played) for context
-      sims = sims %>% mutate(Player = paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"))
-    } else{
-      for (k in 1:10000){sim_p2 = c(sim_p2,mean(s2[sample(length(s2),size = min(length(s2),5),replace = F)]))}
-      sims = rbind.data.frame(data.frame(sim = sim_p1,Player = p1_df$Player[1]), data.frame(sim = sim_p2,Player = p2_df$Player[1])) %>% as_tibble()
-      # add a sample size (games played) for context
-      sims = sims %>% mutate(Player = ifelse(Player==p1_df$Player[1],paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"),paste0(Player," (n=",(length(static$Stat[which(static$Player==p2_df$Player[1])])),")")))
-    }
-    
-    sims$Player = factor(sims$Player, levels = unique(sims$Player))
-    plot_3_in =
-      sims %>% ggplot(aes(x = sim, color = Player)) +
-      geom_histogram(alpha = I(1/4), position = "identity", bins = 30, aes(y = ..density.., fill = Player)) +
-      geom_density(alpha = I(4/5))
-    # Extract the data from the ggplot object
-    plot_data <- ggplot_build(plot_3_in)$data[[1]]
-    plot_3 = plot_3_in + theme_bw() +
-      scale_y_continuous("Normalized Density") + ggtitle("Distribution Comparison", subtitle = "  Based on random 5-game samples") +
-      scale_x_continuous(name = stat_input) +
-      scale_color_manual("", values = c(top_color$Hex[1],"grey50")) +
-      scale_fill_manual("", values = c(top_color$Hex[1],"grey50")) +
-      theme(legend.position = "top", plot.subtitle = element_text(size = 8, face = "italic"))
-    
-    plot_3
+    req(input$pc_compare)
+    isolate({
+      p1_df = p1_df();p2_df = p2_df();stat_input = stat_input();date_input = date_input()
+      # ;roll_avg_input = roll_avg_input()
+      # translate some inputs
+      stat_col = menu_map(stat_input)
+      # ra = as.integer(roll_avg_input)
+      min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
+      
+      if (nrow(p2_df)==0){
+        # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+        p1_df = p1_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
+        cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      } else{
+        # else: combine two player data frames!
+        p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
+        cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      }
+      cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
+      #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+                           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                             (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
+                             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                             -1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss) + #turnovers added
+                             (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                             (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+                           fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+                           ,tenPTS = ifelse(PTS>9,1,0),tenTRB = ifelse(TRB>9,1,0),tenAST = ifelse(AST>9,1,0),tenSTL = ifelse(STL>9,1,0),tenBLK = ifelse(BLK>9,1,0)) %>% 
+        mutate(sum10s = tenPTS+tenTRB+tenAST+tenSTL+tenBLK) %>% 
+        mutate(fPTS2 = (.5*PTS) + (TRB) + (AST) + (2*(STL)) + (2*(BLK)) + (-1*(TOV)) + (.5*X3P) +
+                 ifelse(sum10s > 1,1,0) + # double-double bonus
+                 ifelse(sum10s > 2,2,0) + # triple-double bonus
+                 ifelse(PTS > 39,2,0) + # 40+ points bonus
+                 ifelse(PTS > 49,2,0) # 50+ points bonus
+        )
+      top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
+      
+      # modify Stat columns if stat_input is a percent!
+      if (grepl("[P|p]ercentage",stat_input)){
+        static = cdf[,c("Player","Tm", "G", "Date", str_split(stat_col,"\\.")[[1]][1] %>% paste0(""), str_split(stat_col,"\\.")[[1]][1] %>% paste0("A"))]
+        names(static)[(ncol(static)-1):ncol(static)] = c("Make", "Att")
+        static$Stat = static$Make/static$Att
+      } else{
+        static = cdf[,c("Player","Tm", "G", "Date", stat_col)]
+        names(static)[ncol(static)] = "Stat"
+        static = static %>% mutate(Stat = as.double(Stat))
+      }
+      sim_p1 = c();sim_p2 = c();s1=c(static$Stat[which(static$Player==p1_df$Player[1])]);s2=c(static$Stat[which(static$Player==p2_df$Player[1])])
+      
+      for (j in 1:10000){sim_p1 = c(sim_p1,mean(s1[sample(length(s1),size = min(length(s1),5),replace = T)]))}
+      if (nrow(p2_df)==0){
+        # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+        sim_p2 = c()
+        sims = data.frame(sim = sim_p1,Player = p1_df$Player[1])
+        # add a sample size (games played) for context
+        sims = sims %>% mutate(Player = paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"))
+      } else{
+        for (k in 1:10000){sim_p2 = c(sim_p2,mean(s2[sample(length(s2),size = min(length(s2),5),replace = F)]))}
+        sims = rbind.data.frame(data.frame(sim = sim_p1,Player = p1_df$Player[1]), data.frame(sim = sim_p2,Player = p2_df$Player[1])) %>% as_tibble()
+        # add a sample size (games played) for context
+        sims = sims %>% mutate(Player = ifelse(Player==p1_df$Player[1],paste0(Player," (n=",(length(static$Stat[which(static$Player==p1_df$Player[1])])),")"),paste0(Player," (n=",(length(static$Stat[which(static$Player==p2_df$Player[1])])),")")))
+      }
+      
+      sims$Player = factor(sims$Player, levels = unique(sims$Player))
+      plot_3_in =
+        sims %>% ggplot(aes(x = sim, color = Player)) +
+        geom_histogram(alpha = I(1/4), position = "identity", bins = 30, aes(y = ..density.., fill = Player)) +
+        geom_density(alpha = I(4/5))
+      # Extract the data from the ggplot object
+      plot_data = ggplot_build(plot_3_in)$data[[1]]
+      plot_3 = plot_3_in + theme_bw() +
+        scale_y_continuous("Normalized Density") + ggtitle("Distribution Comparison", subtitle = "  Based on random 5-game samples") +
+        scale_x_continuous(name = stat_input) +
+        scale_color_manual("", values = c(top_color$Hex[1],"grey50")) +
+        scale_fill_manual("", values = c(top_color$Hex[1],"grey50")) +
+        theme(legend.position = "top", plot.subtitle = element_text(size = 8, face = "italic"))
+      
+      plot_3
+    })
     
   })
   
   # Table 1: Game Log
   output$table1 = renderDT({
-    p1_df = p1_df();p2_df = p2_df();date_input = date_input()
-    min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
-    
-    if (nrow(p2_df)==0){
-      fi1 = str_split(p1_df$Player[1],"")[[1]][1];ln1 = rev(str_split(p1_df$Player[1]," ")[[1]][!(str_split(p1_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2]
-      p1_df = p1_df %>% mutate(Player = paste0(fi1,". ",ln1))
-    } else{
-      fi1 = str_split(p1_df$Player[1],"")[[1]][1];ln1 = rev(str_split(p1_df$Player[1]," ")[[1]][!(str_split(p1_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2];fi2 = str_split(p2_df$Player[1],"")[[1]][1];ln2 = rev(str_split(p2_df$Player[1]," ")[[1]][!(str_split(p2_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2]
-      if ((fi1 == fi2 & ln1 == ln2)==F){
+    req(input$pc_compare)
+    isolate({
+      p1_df = p1_df();p2_df = p2_df();date_input = date_input()
+      min_date = ifelse(date_input == "Past year (365 days)",Sys.Date()-365,ifelse(date_input=="Past month (30 days)",Sys.Date()-30,ifelse(Sys.Date() %>% format("%m") %>% as.integer() <= 10,paste0((Sys.Date() %>% format("%Y") %>% as.integer() - 1),"-10-01"),paste0((Sys.Date() %>% format("%Y") %>% as.integer()),"-10-01")))) %>% as.Date()
+      
+      if (nrow(p2_df)==0){
+        fi1 = str_split(p1_df$Player[1],"")[[1]][1];ln1 = rev(str_split(p1_df$Player[1]," ")[[1]][!(str_split(p1_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2]
         p1_df = p1_df %>% mutate(Player = paste0(fi1,". ",ln1))
-        p2_df = p2_df %>% mutate(Player = paste0(fi2,". ",ln2))
+      } else{
+        fi1 = str_split(p1_df$Player[1],"")[[1]][1];ln1 = rev(str_split(p1_df$Player[1]," ")[[1]][!(str_split(p1_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2];fi2 = str_split(p2_df$Player[1],"")[[1]][1];ln2 = rev(str_split(p2_df$Player[1]," ")[[1]][!(str_split(p2_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2]
+        if ((fi1 == fi2 & ln1 == ln2)==F){
+          p1_df = p1_df %>% mutate(Player = paste0(fi1,". ",ln1))
+          p2_df = p2_df %>% mutate(Player = paste0(fi2,". ",ln2))
+        }
       }
-    }
-    if (nrow(p2_df)==0){
-      # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+      if (nrow(p2_df)==0){
+        # if p2_df is empty, then treat data like we're only plotting one player (because we are!)
+        
+        p1_df = p1_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
+        cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      } else{
+        # else: combine two player data frames!
+        
+        p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
+        p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
+        cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
+      }
       
-      p1_df = p1_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double))
-      cdf = p1_df %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    } else{
-      # else: combine two player data frames!
+      cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
+      #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
+      cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
+                           valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
+                             ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
+                             (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
+                             (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
+                             (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
+                             (-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)) + #turnovers added
+                             (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
+                             (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
+                           fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
+      )
+      top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
       
-      p1_df = p1_df %>% filter(Date >= min_date);p2_df = p2_df %>% filter(Date >= min_date)
-      p1_df = p1_df %>% mutate(G = 1:nrow(p1_df),across(!c(Date,Tm,Player),as.double)); p2_df = p2_df %>% mutate(G = 1:nrow(p2_df),across(!c(Date,Tm,Player,G,MP),as.double))
-      cdf = p1_df %>% rbind.data.frame(p2_df) %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = c("Tm" = "Team"))
-    }
-    
-    cdf = cdf %>% mutate(across(c(X3P,X3PA,FT,FTA,FG,FGA),as.numeric)) %>% mutate(X2P = FG-X3P, X2PA = FGA-X3PA)
-    #cdf = cdf %>% separate(Date, into = c("Year", "m", "d"), remove=F) %>% select(-m, -d) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(Year = dts(Date)) %>% inner_join(lga, by = "Year")
-    cdf = cdf %>% mutate(X3PAdd = ((X3P/ifelse(X3PA==0,1,X3PA))-(la3P.))*(X3PA),X2PAdd = ((X2P/ifelse(X2PA==0,1,X2PA))-(la2P.))*(X2PA),FTAdd = ((FT/ifelse(FTA==0,1,FTA))-(laFT.))*(FTA),
-                         valueAdd = ((PTS/MP)-(laPTSperM))*(MP) + #points added (volume)
-                           ((3*X3PAdd)+(2*X2PAdd)+FTAdd) + #points added (efficiency)
-                           (((AST/MP)-(laASTperM))*(MP))*(laPTSperMake)*(1-laFG.) + #assists added
-                           (((STL/MP)-(laSTLperM))*(MP))*(laPTSperPoss) + #steals added
-                           (((BLK/MP)-(laBLKperM))*(MP))*(laPTSperPoss)*(laDRBrate) + #blocks added
-                           (-1*(((TOV/MP)-(laTOVperM))*(MP))*(laPTSperPoss)) + #turnovers added
-                           (((DRB/MP)-(laDRBperM))*(MP))*(laPTSperPoss)*(laORBrate) + #d rebounds added
-                           (((ORB/MP)-(laORBperM))*(MP))*(laPTSperPoss)*(laDRBrate), #o rebounds added
-                         fPTS = 2*(FG) + -1*(FGA) + 1*(FT) + -1*(FTA) + 1*(X3P) + 1*(TRB) + 2*(AST) + 4*(STL) + 4*(BLK) + -2*(TOV) + 1*(PTS)
-    )
-    top_color = cdf %>% filter(Player == p1_df$Player[1]) %>% tail(1)
-    
-    if (nrow(p2_df)==0){
-      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
-        datatable(options = list(pageLength = 25))
-      
-    } else{
-      cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
-        datatable(options = list(pageLength = 25)) %>% 
-        formatStyle(
-          'Player', 
-          target = 'row', 
-          backgroundColor = styleEqual(
-            c(p1_df$Player[1], p2_df$Player[1]), 
-            c(lighten_color(top_color$Hex[1]), "lightgrey")),
-          color = styleEqual(
-            c(p1_df$Player[1], p2_df$Player[1]), 
-            c("white", "black")
+      if (nrow(p2_df)==0){
+        cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
+          datatable(options = list(pageLength = 25))
+        
+      } else{
+        cdf %>% arrange(desc(valueAdd)) %>% transmute(Player, Date = format.Date(Date, "%y-%m-%d"), PTS, TRB, AST, BLK, STL, `3P` = paste0(X3P,"/",X3PA), `2P` = paste0(X2P,"/",X2PA), FT = paste0(FT,"/",FTA), VA = round(valueAdd,2)) %>% 
+          datatable(options = list(pageLength = 25)) %>% 
+          formatStyle(
+            'Player', 
+            target = 'row', 
+            backgroundColor = styleEqual(
+              c(p1_df$Player[1], p2_df$Player[1]), 
+              c(lighten_color(top_color$Hex[1]), "lightgrey")),
+            color = styleEqual(
+              c(p1_df$Player[1], p2_df$Player[1]), 
+              c("white", "black")
+            )
           )
-        )
-    }
+      }
+    })
   })
   
   # Plot 3: Leaders Bar Graph
   output$plot3 = renderPlot({
-    year_input = year_input();stat_input_2 = stat_input_2();pg_factor = pg_factor();player_input = player_input();reg_playoff = reg_playoff()
-    if (reg_playoff == "Playoffs"){
-      today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
-      df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
-      gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
-      df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
-      df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
-      df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
-    }
-    all_year = df %>% filter(Year == year_input)
-    stat_col = menu_map(stat_input_2)
-    leaders_static = all_year[,c("Player","Team", "Hex","G",stat_col)]
-    names(leaders_static)[ncol(leaders_static)] = "Stat"
-    if (grepl("^F.*|^X.*",stat_col)){
-      leaders_static = leaders_static %>% filter(!(Stat %in% c(0,1)))
-    }
-    if (pg_factor&(!grepl("Percentage",stat_input_2))){
-      min_games = ifelse(player_input != "",min(leaders_static$G[which(leaders_static$Player==player_input)],gpl_df$gpl[which(gpl_df$Year == year_input)]),gpl_df$gpl[which(gpl_df$Year == year_input)])
-      leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games)  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
-      leaders_static = leaders_static %>% arrange(desc(Stat)) %>% 
-        data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
-    } else{
-      leaders_static = leaders_static %>% 
-        arrange(desc(Stat)) %>% data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
-    }
-    if (player_input == ""){
-      output = leaders_static[1:10,]
-    } else{
-      output = leaders_static[(max(((which(player_input==leaders_static$Player))-5),1)):(min(((which(player_input==leaders_static$Player))+5),nrow(leaders_static))),]  
-    }
-    output = output %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(",remove = F) %>% select(-bbref)
-    output = output %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
-    output$rk = factor(output$rk, levels = rev(output$rk))
-    
-    if (any(output$Stat<0)){
-      plot = output %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
-        geom_bar(stat = "identity", color = "black", aes(fill = Hex), alpha = I(3/5)) +
-        theme_bw() + coord_flip() + scale_fill_identity() + theme(legend.position = "none") +
-        scale_y_continuous(name = paste0(stat_input_2,ifelse(pg_factor," (Per Game) "," (Total) ")),
-                           limits = c(min(output$Stat)-((abs(min(output$Stat)))/4),max(max(output$Stat)+((abs(max(output$Stat))/9.5)),0))) + 
-        scale_x_discrete(name = "") +
-        geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) +
-        geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
-        ggtitle(label = "", subtitle = ifelse(pg_factor,paste0(year_input," ",reg_playoff," Leaders (min. ",(floor(min_games))," game(s))"),paste0(year_input," ",reg_playoff," Leaders ")))
-    } else{
-      plot = output %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
-        geom_bar(stat = "identity", color = "black", aes(fill = Hex), alpha = I(3/5)) +
-        theme_bw() + coord_flip() + scale_fill_identity() + theme(legend.position = "none") +
-        scale_y_continuous(name = paste0(stat_input_2,ifelse(pg_factor," (Per Game) "," (Total) ")),
-                           limits = c(0,max(output$Stat)+((max(output$Stat)/9.5)))) + 
-        scale_x_discrete(name = "") +
-        geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) +
-        geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
-        ggtitle(label = "", subtitle = ifelse(pg_factor,paste0(year_input," ",reg_playoff," Leaders (min. ",(floor(min_games))," game(s))"),paste0(year_input," ",reg_playoff," Leaders ")))
-    }
-    
-    plot
+    req(input$lb_load)
+    isolate({
+      year_input = year_input();stat_input_2 = stat_input_2();pg_factor = pg_factor();player_input = player_input();reg_playoff = reg_playoff()
+      if (reg_playoff == "Playoffs"){
+        today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
+        df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
+        gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
+        df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
+        df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
+        df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
+      }
+      all_year = df %>% filter(Year == year_input)
+      stat_col = menu_map(stat_input_2)
+      leaders_static = all_year[,c("Player","Team", "Hex","G",stat_col)]
+      names(leaders_static)[ncol(leaders_static)] = "Stat"
+      if (grepl("^F.*|^X.*",stat_col)){
+        leaders_static = leaders_static %>% filter(!(Stat %in% c(0,1)))
+      }
+      if (pg_factor&(!grepl("Percentage",stat_input_2))){
+        min_games = ifelse(player_input != "",min(leaders_static$G[which(leaders_static$Player==player_input)],gpl_df$gpl[which(gpl_df$Year == year_input)]),gpl_df$gpl[which(gpl_df$Year == year_input)])
+        leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games)  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
+        leaders_static = leaders_static %>% arrange(desc(Stat)) %>% 
+          data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
+      } else{
+        leaders_static = leaders_static %>% 
+          arrange(desc(Stat)) %>% data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
+      }
+      if (player_input == ""){
+        output = leaders_static[1:10,]
+      } else{
+        output = leaders_static[(max(((which(player_input==leaders_static$Player))-5),1)):(min(((which(player_input==leaders_static$Player))+5),nrow(leaders_static))),]  
+      }
+      output = output %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(",remove = F) %>% select(-bbref)
+      output = output %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
+      output$rk = factor(output$rk, levels = rev(output$rk))
+      
+      if (any(output$Stat<0)){
+        plot = output %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
+          geom_bar(stat = "identity", color = "black", aes(fill = Hex), alpha = I(3/5)) +
+          theme_bw() + coord_flip() + scale_fill_identity() + theme(legend.position = "none") +
+          scale_y_continuous(name = paste0(stat_input_2,ifelse(pg_factor," (Per Game) "," (Total) ")),
+                             limits = c(min(output$Stat)-((abs(min(output$Stat)))/4),max(max(output$Stat)+((abs(max(output$Stat))/9.5)),0))) + 
+          scale_x_discrete(name = "") +
+          geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) +
+          geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
+          ggtitle(label = "", subtitle = ifelse(pg_factor,paste0(year_input," ",reg_playoff," Leaders (min. ",(floor(min_games))," game(s))"),paste0(year_input," ",reg_playoff," Leaders ")))
+      } else{
+        plot = output %>% ggplot(aes(x = rk, y = Stat, fill = Hex)) +
+          geom_bar(stat = "identity", color = "black", aes(fill = Hex), alpha = I(3/5)) +
+          theme_bw() + coord_flip() + scale_fill_identity() + theme(legend.position = "none") +
+          scale_y_continuous(name = paste0(stat_input_2,ifelse(pg_factor," (Per Game) "," (Total) ")),
+                             limits = c(0,max(output$Stat)+((max(output$Stat)/9.5)))) + 
+          scale_x_discrete(name = "") +
+          geom_text(aes(fontface = "bold",label = disPlayer), hjust = 1, size = I(2.25)) +
+          geom_text(aes(label = display_stat), hjust = 0, size = I(2.25)) +
+          ggtitle(label = "", subtitle = ifelse(pg_factor,paste0(year_input," ",reg_playoff," Leaders (min. ",(floor(min_games))," game(s))"),paste0(year_input," ",reg_playoff," Leaders ")))
+      }
+      
+      plot
+    })
     
   })
   
   # Table 3: Leaders Summary Statistics
   output$table3 = renderDT({
-    year_input = year_input();stat_input_2 = stat_input_2();pg_factor = pg_factor();player_input = player_input();reg_playoff = reg_playoff()
-    if (reg_playoff == "Playoffs"){
-      today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
-      df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
-      gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
-      df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
-      df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
-      df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
-    }
-    v_cols = read.csv("Complete Data/menu_options_3.csv")[,-1] %>%
-      filter(category == "volume") %>% select(col_name) %>% as.vector()
-    all_year = df %>% filter(Year == year_input)
-    stat_col = menu_map(stat_input_2)
-    leaders_static = all_year[,c("Player","Team", "Hex","G",stat_col)]
-    names(leaders_static)[ncol(leaders_static)] = "Stat"
-    if (grepl("^F.*|^X.*",stat_col)){
-      leaders_static = leaders_static %>% filter(!(Stat %in% c(0,1)))
-    }
-    if (pg_factor&(!grepl("Percentage",stat_input_2))){
-      min_games = ifelse(player_input != "",min(leaders_static$G[which(leaders_static$Player==player_input)],gpl_df$gpl[which(gpl_df$Year == year_input)]),gpl_df$gpl[which(gpl_df$Year == year_input)])
-      leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games)  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
-      leaders_static = leaders_static %>% arrange(desc(Stat)) %>% 
-        data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
-    } else{
-      leaders_static = leaders_static %>% 
-        arrange(desc(Stat)) %>% data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
-    }
-    if (player_input == ""){
-      output = leaders_static[1:10,]
-    } else{
-      output = leaders_static[(max(((which(player_input==leaders_static$Player))-5),1)):(min(((which(player_input==leaders_static$Player))+5),nrow(leaders_static))),]  
-    }
-    output = output %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(",remove = F) %>% select(-bbref)
-    output = output %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
-    output$rk = factor(output$rk, levels = rev(output$rk))
-    player_col = all_year$Hex[which(all_year$Player == input$player_input)]
+    req(input$lb_load)
+    isolate({
+      year_input = year_input();stat_input_2 = stat_input_2();pg_factor = pg_factor();player_input = player_input();reg_playoff = reg_playoff()
+      if (reg_playoff == "Playoffs"){
+        today_file = paste0("Complete Data/Totals_p_",Sys.Date(),".csv",collapse = "")
+        df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
+        gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
+        df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
+        df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
+        df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
+      }
+      v_cols = read.csv("Complete Data/menu_options_3.csv")[,-1] %>%
+        filter(category == "volume") %>% select(col_name) %>% as.vector()
+      all_year = df %>% filter(Year == year_input)
+      stat_col = menu_map(stat_input_2)
+      leaders_static = all_year[,c("Player","Team", "Hex","G",stat_col)]
+      names(leaders_static)[ncol(leaders_static)] = "Stat"
+      if (grepl("^F.*|^X.*",stat_col)){
+        leaders_static = leaders_static %>% filter(!(Stat %in% c(0,1)))
+      }
+      if (pg_factor&(!grepl("Percentage",stat_input_2))){
+        min_games = ifelse(player_input != "",min(leaders_static$G[which(leaders_static$Player==player_input)],gpl_df$gpl[which(gpl_df$Year == year_input)]),gpl_df$gpl[which(gpl_df$Year == year_input)])
+        leaders_static = leaders_static %>% mutate(Stat = Stat/G) %>% filter(G >= min_games)  # if looking at per game stats, divide Stat by G and remove players who missed 25%+ of the season.
+        leaders_static = leaders_static %>% arrange(desc(Stat)) %>% 
+          data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
+      } else{
+        leaders_static = leaders_static %>% 
+          arrange(desc(Stat)) %>% data.frame(rk = 1:nrow(leaders_static)) %>% mutate(display_stat = paste0(" ",round(Stat,3)))
+      }
+      if (player_input == ""){
+        output = leaders_static[1:10,]
+      } else{
+        output = leaders_static[(max(((which(player_input==leaders_static$Player))-5),1)):(min(((which(player_input==leaders_static$Player))+5),nrow(leaders_static))),]  
+      }
+      output = output %>% separate(Player,into = c("disPlayer","bbref"),sep = "\\(",remove = F) %>% select(-bbref)
+      output = output %>% mutate(rk = paste0("#",rk), disPlayer = paste0(disPlayer, " "))
+      output$rk = factor(output$rk, levels = rev(output$rk))
+      player_col = all_year$Hex[which(all_year$Player == input$player_input)]
+      
+      if (stat_col %in% v_cols$col_name){
+        output %>% select(Player) %>% left_join(all_year, by = join_by(Player)) %>% 
+          transmute(Player, G, MP = round(MP/G,2), PTS = round(PTS/G,2), TRB = round(TRB/G,2), AST = round(AST/G,2), 
+                    STL = round(STL/G,2), BLK = round(BLK/G,2), valueAdd = round(valueAdd/G,2)) %>% 
+          datatable(rownames = F, 
+                    options = list(
+                      pageLength = 11, # Set the default number of rows
+                      dom = 't', # Only show the table, without additional interface elements
+                      paging = FALSE, # Disable pagination
+                      searching = FALSE # Disable the search box
+                    )
+          ) %>%
+          formatStyle(
+            'Player',
+            target = 'row',
+            backgroundColor = styleEqual(input$player_input, "gold")
+          ) %>%
+          formatStyle(
+            columns = c('G','MP'),
+            color = 'grey'
+          )
+      } else{
+        output %>% select(Player) %>% left_join(all_year, by = join_by(Player)) %>% 
+          transmute(Player, G, PTS = round(PTS/G,2), `3P.` = X3P., `3PA/G` = round(X3PA/G,2), 
+                    `2P.` = X2P., `2PA/G` = round(X2PA/G,2), FT., `FTA/G` = round(FTA/G,2), `Eff/G` = round(PTSAdd/G,3)) %>% 
+          datatable(rownames = F,
+                    options = list(
+                      pageLength = 11, # Set the default number of rows
+                      dom = 't', # Only show the table, without additional interface elements
+                      paging = FALSE, # Disable pagination
+                      searching = FALSE # Disable the search box
+                    )
+          ) %>% 
+          formatStyle(
+            'Player',
+            target = 'row',
+            backgroundColor = styleEqual(input$player_input, "gold")
+          ) %>%
+          formatStyle(
+            columns = c('G'),
+            color = 'grey'
+          )
+      }
+    })
     
-    if (stat_col %in% v_cols$col_name){
-      output %>% select(Player) %>% left_join(all_year, by = join_by(Player)) %>% 
-        transmute(Player, G, MP = round(MP/G,2), PTS = round(PTS/G,2), TRB = round(TRB/G,2), AST = round(AST/G,2), 
-                  STL = round(STL/G,2), BLK = round(BLK/G,2), valueAdd = round(valueAdd/G,2)) %>% 
-        datatable(rownames = F, 
-                  options = list(
-                    pageLength = 11, # Set the default number of rows
-                    dom = 't', # Only show the table, without additional interface elements
-                    paging = FALSE, # Disable pagination
-                    searching = FALSE # Disable the search box
-                  )
-        ) %>%
-        formatStyle(
-          'Player',
-          target = 'row',
-          backgroundColor = styleEqual(input$player_input, "gold")
-        ) %>%
-        formatStyle(
-          columns = c('G','MP'),
-          color = 'grey'
-        )
-    } else{
-      output %>% select(Player) %>% left_join(all_year, by = join_by(Player)) %>% 
-        transmute(Player, G, PTS = round(PTS/G,2), `3P.` = X3P., `3PA/G` = round(X3PA/G,2), 
-                  `2P.` = X2P., `2PA/G` = round(X2PA/G,2), FT., `FTA/G` = round(FTA/G,2), `Eff/G` = round(PTSAdd/G,3)) %>% 
-        datatable(rownames = F,
-                  options = list(
-                    pageLength = 11, # Set the default number of rows
-                    dom = 't', # Only show the table, without additional interface elements
-                    paging = FALSE, # Disable pagination
-                    searching = FALSE # Disable the search box
-                  )
-        ) %>% 
-        formatStyle(
-          'Player',
-          target = 'row',
-          backgroundColor = styleEqual(input$player_input, "gold")
-        ) %>%
-        formatStyle(
-          columns = c('G'),
-          color = 'grey'
-        )
-    }
     
   })
   
@@ -1519,6 +1615,268 @@ server <- function(input, output, session) {
         color = styleEqual(p_static[[10]], p_static$Text.1)
       ) 
     
+  })
+  
+  # Add these observers for the Season Comparison tab
+  observe({
+    player_choices1 = df %>% arrange(desc(Year)) %>% filter(Year > "1978-1979") %>% # 1979-80 is the first year where all of these statistics are available) 
+      distinct(Player, .keep_all = F)
+    player_choices2 = player_choices1[c(2,1,3:nrow(player_choices1)),]
+    updateSelectizeInput(session, "sc_player1", choices = player_choices1$Player, server = TRUE)
+    updateSelectizeInput(session, "sc_player2", choices = player_choices2$Player, server = TRUE)
+  })
+  
+  observe({
+    req(input$sc_player1)
+    years = df %>% 
+      filter(Player == input$sc_player1, Year > "1978-1979") %>% # 1979-80 is the first year where all of these statistics are available
+      pull(Year) %>% 
+      unique() %>%
+      sort(decreasing = TRUE)
+    updateSelectInput(session, "sc_year1", choices = years)
+  })
+  
+  observe({
+    req(input$sc_player2)
+    filt_y = ifelse(input$sc_player2==input$sc_player1,input$sc_year1,"always_true")
+    years = df %>% 
+      filter(Player == input$sc_player2 & Year > "1978-1979" & (Year %in% (filt_y)==F)) %>% # 1979-80 is the first year where all of these statistics are available
+      pull(Year) %>% 
+      unique() %>%
+      sort(decreasing = TRUE)
+    updateSelectInput(session, "sc_year2", choices = years)
+  })
+  
+  output$sc_comparison_plots = renderPlot({
+    req(input$sc_compare)
+    isolate({
+      req(input$sc_player1, input$sc_player2, input$sc_year1, input$sc_year2)
+        player_input_1 = input$sc_player1
+        player_input_2 = input$sc_player2
+        year_input_1 = input$sc_year1
+        year_input_2 = input$sc_year2
+        
+        tp_df = df %>% filter(Year %in% c(year_input_1, year_input_2))
+        top_color = tp_df$Hex[which(tp_df$Player == player_input_1 & tp_df$Year == year_input_1)]
+        tp_df$Player = factor(tp_df$Player, levels = unique(c(player_input_1, player_input_2)))
+        tp_df$Year = factor(tp_df$Year, levels = unique(c(year_input_1, year_input_2)))
+        tp_df$Year_dp = paste0("'", str_extract(tp_df$Year, "\\d{2}$"))
+        tp_df$Player_dp = str_replace(tp_df$Player, "\\s*\\(.*\\)$", "")
+        
+        # Plot 1: Scoring Volume vs. Efficiency
+        tp_df_1 = tp_df %>% 
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
+                                    sprintf("%.2f", (PTS/G)), " PPG on ", eFG., " eFG")) %>% 
+          arrange(Player)
+        
+        p1 = tp_df_1 %>% 
+          ggplot(aes(x = vaPTSv/G, y = PTSAdd/G, color = Year)) + 
+          geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
+          geom_point(alpha = 0.2) +
+          geom_point(
+            data = tp_df_1 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)),
+            alpha = 1, size = 2
+          ) +
+          scale_y_continuous(
+            name = "Efficiency Points Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.1, 0.1))
+          ) + 
+          geom_hline(yintercept = 0) + 
+          scale_x_continuous(
+            name = "Scoring Volume Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.2, 0.2))
+          ) + 
+          geom_vline(xintercept = 0) +
+          theme_bw() + 
+          geom_segment(
+            data = tp_df_1 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(PTSAdd/G == max(PTSAdd/G),
+                                    (PTSAdd/G) + 1/3,
+                                    (PTSAdd/G) - 1/3)),
+            aes(x = vaPTSv/G, xend = vaPTSv/G, y = PTSAdd/G, yend = y_adj, color = Year),
+            inherit.aes = FALSE, show.legend = FALSE
+          ) + 
+          geom_label(
+            data = tp_df_1 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(PTSAdd/G == max(PTSAdd/G),
+                                    (PTSAdd/G) + 1/3,
+                                    (PTSAdd/G) - 1/3)),
+            aes(x = vaPTSv/G, y = y_adj, label = disPlayer, color = Year),
+            size = 3, show.legend = FALSE
+          ) + 
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+        
+        # Plot 2: Assists vs. Turnovers
+        tp_df_2 = tp_df %>% 
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
+                                    sprintf("%.2f", (AST/G)), " APG on ", 
+                                    sprintf("%.1f", (TOV/G)), " TOV")) %>% 
+          arrange(Player)
+        
+        p2 = tp_df_2 %>% 
+          ggplot(aes(x = vaTOV/G, y = vaAST/G, color = Year)) + 
+          geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
+          geom_point(alpha = 0.2) +
+          geom_point(
+            data = tp_df_2 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)),
+            alpha = 1, size = 2
+          ) +
+          scale_y_continuous(
+            name = "Assists Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.1, 0.1))
+          ) + 
+          geom_hline(yintercept = 0) + 
+          scale_x_continuous(
+            name = "Turnovers Saved",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.2, 0.2))
+          ) + 
+          geom_vline(xintercept = 0) +
+          theme_bw() + 
+          geom_segment(
+            data = tp_df_2 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(vaAST/G == max(vaAST/G),
+                                    (vaAST/G) + 0.4,
+                                    (vaAST/G) - 0.4)),
+            aes(x = vaTOV/G, xend = vaTOV/G, y = vaAST/G, yend = y_adj, color = Year),
+            inherit.aes = FALSE, show.legend = FALSE
+          ) + 
+          geom_label(
+            data = tp_df_2 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(vaAST/G == max(vaAST/G),
+                                    (vaAST/G) + 0.5,
+                                    (vaAST/G) - 0.5)),
+            aes(x = vaTOV/G, y = y_adj, label = disPlayer, color = Year),
+            size = 3, show.legend = FALSE
+          ) + 
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+        
+        # Plot 3: Stocks vs. Rebounds
+        tp_df_3 = tp_df %>% 
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
+                                    sprintf("%.2f", ((STL+BLK)/G)), " STK/G & ", 
+                                    sprintf("%.2f", (TRB/G)), " TRB")) %>% 
+          arrange(Player)
+        
+        p3 = tp_df_3 %>% 
+          ggplot(aes(x = (vaORB+vaDRB)/G, y = (vaSTL+vaBLK)/G, color = Year)) + 
+          geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
+          geom_point(alpha = 0.2) +
+          geom_point(
+            data = tp_df_3 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)),
+            alpha = 1, size = 2
+          ) +
+          scale_y_continuous(
+            name = "Steals + Blocks Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.1, 0.1))
+          ) + 
+          geom_hline(yintercept = 0) + 
+          scale_x_continuous(
+            name = "Total Rebounding Value",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.2, 0.2))
+          ) + 
+          geom_vline(xintercept = 0) +
+          theme_bw() + 
+          geom_segment(
+            data = tp_df_3 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse((vaSTL+vaBLK)/G == max((vaSTL+vaBLK)/G),
+                                    ((vaSTL+vaBLK)/G) + 0.15,
+                                    ((vaSTL+vaBLK)/G) - 0.15)),
+            aes(x = (vaORB+vaDRB)/G, xend = (vaORB+vaDRB)/G, 
+                y = (vaSTL+vaBLK)/G, yend = y_adj, color = Year),
+            inherit.aes = FALSE, show.legend = FALSE
+          ) + 
+          geom_label(
+            data = tp_df_3 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse((vaSTL+vaBLK)/G == max((vaSTL+vaBLK)/G),
+                                    ((vaSTL+vaBLK)/G) + 0.15,
+                                    ((vaSTL+vaBLK)/G) - 0.15)),
+            aes(x = (vaORB+vaDRB)/G, y = y_adj, label = disPlayer, color = Year),
+            size = 3, show.legend = FALSE
+          ) + 
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+        
+        # Plot 4: 3s vs. 2s + FTs
+        tp_df_4 = tp_df %>% 
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
+                                    100*(X3P.), " 3P% | ", 100*(X2P.), " 2P%")) %>% 
+          arrange(Player)
+        
+        p4 = tp_df_4 %>% 
+          filter(FGA > 25) %>% 
+          ggplot(aes(x = (PTSAdd-(3*(X3PAdd)))/G, y = 3*(X3PAdd)/G, color = Year)) + 
+          geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
+          geom_point(alpha = 0.2) +
+          geom_point(
+            data = tp_df_4 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)),
+            alpha = 1, size = 2
+          ) +
+          scale_y_continuous(
+            name = "3-Pointers Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.1, 0.1))
+          ) + 
+          geom_hline(yintercept = 0) + 
+          scale_x_continuous(
+            name = "2-Pointers + Free Throws Added",
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.2, 0.2))
+          ) + 
+          geom_vline(xintercept = 0) +
+          theme_bw() + 
+          geom_segment(
+            data = tp_df_4 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(3*(X3PAdd)/G == max(3*(X3PAdd)/G),
+                                    3*(X3PAdd)/G + 0.2,
+                                    3*(X3PAdd)/G - 0.2)),
+            aes(x = (PTSAdd-(3*(X3PAdd)))/G, xend = (PTSAdd-(3*(X3PAdd)))/G,
+                y = 3*(X3PAdd)/G, yend = y_adj, color = Year),
+            inherit.aes = FALSE, show.legend = FALSE
+          ) + 
+          geom_label(
+            data = tp_df_4 %>%
+              filter((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2)) %>%
+              mutate(y_adj = ifelse(3*(X3PAdd)/G == max(3*(X3PAdd)/G),
+                                    3*(X3PAdd)/G + 0.2,
+                                    3*(X3PAdd)/G - 0.2)),
+            aes(x = (PTSAdd-(3*(X3PAdd)))/G, y = y_adj, label = disPlayer, color = Year),
+            size = 3, show.legend = FALSE
+          ) + 
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+        
+        # Combine plots
+        theme_set(theme_minimal(base_size = 10))
+        (p1 + p4 + p2 + p3) + plot_layout(guides = "collect") &
+          theme(legend.position = "top", axis.text.y = element_text(angle = 90, hjust = 0.5))
+    })
   })
   
 }

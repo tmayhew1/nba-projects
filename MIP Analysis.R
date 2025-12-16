@@ -11,9 +11,9 @@ psearch = function(input){
   return(new$Player %>% unique())
 }
 
-mdf_24 = df_ %>% filter(Year %in% c("2023-2024"))
-mdf_25 = df_ %>% filter(Year %in% c("2024-2025")) %>% inner_join(gpl_df,by = join_by(Year)) %>% filter(G > gpl) %>% select(-gpl)
-mdf = mdf_24 %>% rbind.data.frame(mdf_25)
+mdf_25 = df_ %>% filter(Year %in% c("2024-2025"))
+mdf_26 = df_ %>% filter(Year %in% c("2025-2026")) %>% inner_join(gpl_df,by = join_by(Year)) %>% filter(G > gpl) %>% select(-gpl)
+mdf = mdf_25 %>% rbind.data.frame(mdf_26)
 
 players = mdf %>% group_by(Player) %>% summarise(.groups = "drop", count = n()) %>% filter(count > 1)
 df = mdf %>% inner_join(players,by = join_by(Player)) %>% arrange(Player,Year) %>% mutate(vaPG = valueAdd/G,diff = 0)
@@ -23,6 +23,6 @@ for (i in 1:nrow(df)){
     df$diff[i] = paste0(round(df$vaPG[i]-df$vaPG[i-1],2)," (",round(df$vaPG[i],2)," | ",round(df$vaPG[i-1],2),")")
   }
 }
-df %>% filter(Year == "2024-2025") %>% arrange(desc(diff)) %>% transmute(Player,Age,Team,Pos,PTS/G,TRB/G,AST/G,STL/G,BLK/G,diff) %>% head(20)
+df %>% filter(Year == "2025-2026") %>% arrange(desc(diff)) %>% transmute(Player,Age,Team,Pos,round(PTS/G,2),round(TRB/G,2),round(AST/G,2),round(STL/G,2),round(BLK/G,2),diff) %>% head(20) %>% datatable()
 
 
