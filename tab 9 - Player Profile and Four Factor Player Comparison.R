@@ -167,10 +167,10 @@ dts = function(date){
   )
 }
 
-player_input_1 = psearch("Josh Giddey")[1]
-player_input_2 = psearch("Tyrese Haliburton")[1]
+player_input_1 = psearch("DeMar DeRozan")[1]
+player_input_2 = psearch("Shai Gilgeous-Alexander")[1]
 year_input_1 = "2025-2026"
-year_input_2 = "2024-2025"
+year_input_2 = "2025-2026"
 
 tp_df = df %>% filter(Year %in% c(year_input_1, year_input_2))
 top_color = tp_df$Hex[which(tp_df$Player == player_input_1 & tp_df$Year == year_input_1)]
@@ -195,7 +195,7 @@ p1 = tp_df_1 %>%
     name = "Scoring Volume Added",
     #breaks = pretty(sp_output$value, n = 2),  # or use a custom vector like c(-10, 0, 10)
     labels = function(x) ifelse(x == 0, "League Average", x),
-    expand = expansion(mult = c(0.2, 0.2))  # 10% padding above the max
+    expand = expansion(mult = c(0.2, 0.2))  # 20% padding above the max
   ) + geom_vline(xintercept = 0) +
   theme_bw() + geom_segment(
     data = tp_df_1 %>%
@@ -236,7 +236,7 @@ p2 = tp_df_2 %>%
     name = "Turnovers Saved",
     #breaks = pretty(sp_output$value, n = 2),  # or use a custom vector like c(-10, 0, 10)
     labels = function(x) ifelse(x == 0, "League Average", x),
-    expand = expansion(mult = c(0.2, 0.2))  # 10% padding above the max
+    expand = expansion(mult = c(0.2, 0.2))  # 20% padding above the max
   ) + geom_vline(xintercept = 0) +
   theme_bw() + geom_segment(
     data = tp_df_2 %>%
@@ -277,7 +277,7 @@ p3 = tp_df_3 %>%
     name = "Total Rebounding Value",
     #breaks = pretty(sp_output$value, n = 2),  # or use a custom vector like c(-10, 0, 10)
     labels = function(x) ifelse(x == 0, "League Average", x),
-    expand = expansion(mult = c(0.2, 0.2))  # 10% padding above the max
+    expand = expansion(mult = c(0.2, 0.2))  # 20% padding above the max
   ) + geom_vline(xintercept = 0) +
   theme_bw() + geom_segment(
     data = tp_df_3 %>%
@@ -304,6 +304,7 @@ p3 = tp_df_3 %>%
 
 # Plot 4 of 4 - Value Added on 3s vs. 1s + 2s
 tp_df_4 = tp_df %>% mutate(disPlayer = paste0(Year_dp," ",Player_dp,": ",sprintf("%.2f", (PTS/G))," PPG on ",eFG.," eFG")) %>% arrange(Player)
+
 p4 = tp_df_4 %>% filter(FGA > 25) %>% 
   ggplot(aes(x = (PTSAdd-(3*(X3PAdd)))/G, y = 3*(X3PAdd)/G, color = Year)) + 
   geom_smooth(se = F,method = "lm",formula = 'y ~ x',color = "grey70",alpha = I(.75)) +

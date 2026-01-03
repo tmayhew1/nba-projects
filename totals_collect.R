@@ -8,14 +8,14 @@ if (!exist_yn){
     if (file.exists(paste0("Totals/",i,".csv")) & i!= (as.numeric(format(Sys.Date(), "%Y"))) & i!= (as.numeric(format(Sys.Date(), "%Y"))+1)){
       #print("Totals for this year exist already:")
       #print(i)
-      #print("Totals for this year do not:")
+      #print("Totals for this year do not yet:")
       #print(i+1)
     } else{
       url = paste0("https://www.basketball-reference.com/leagues/NBA_",i,"_totals.html")
       url_status = GET(url) %>% status_code()
       if (url_status == 200){
         page = read_html(url)
-        data.raw = html_table(page, fill=TRUE)
+        data.raw = html_table(page, fill=T)
         if (length(data.raw)==0){
           # print("This year's page is empty:")
           # print(i)
@@ -56,6 +56,72 @@ if (!exist_yn){
           df %>% write.csv(paste0("Totals/",i,".csv"))
           # print("Data collected for:")
           # print(i)
+        }
+        
+        # Collect nuanced shooting stats
+        shoot_url = paste0("https://www.basketball-reference.com/leagues/NBA_",i,"_shooting.html")
+        #print(shoot_url)
+        shoot_url_status = GET(shoot_url) %>% status_code()
+        if (shoot_url_status == 200){
+          shoot_page = read_html(shoot_url)
+          shoot_data.raw = html_table(shoot_page, fill=T)
+          if (length(shoot_data.raw)==0){
+            # print("This year's page is empty:")
+            # print(i)
+          } else{
+            shoot_df_rs = shoot_data.raw[[1]] %>% data.frame(Playoffs = as.character(0)) %>% as_tibble()
+            if (length(shoot_data.raw) < 2){
+              shoot_df = shoot_df_rs
+            } else{
+              shoot_df_pl = shoot_data.raw[[2]] %>% data.frame(Playoffs = as.character(1)) %>% as_tibble()
+              if (ncol(shoot_df_rs)==ncol(shoot_df_pl)){
+                # print(paste0(i," has the same columns in reg. season and playoffs."))
+              } else{
+                # print(paste0(i," has different columns in reg. season and playoffs."))
+                shoot_df_rs = shoot_df_rs[,-c(which(!(names(shoot_df_rs) %in% names(shoot_df_pl))))]
+              } #check to see if reg. season and playoffs can be rbinded (same columns)
+              shoot_df = shoot_df_rs %>% rbind.data.frame(shoot_df_pl)
+            }
+            shoot_df[1,ncol(shoot_df)] = 'Playoffs'
+            shoot_df = shoot_df %>% rename_with(~ make.unique(as.character(shoot_df[1, ]))) %>% 
+              slice(-1) %>% mutate(Playoffs = as.integer(Playoffs))
+            
+            links = shoot_page %>% html_nodes("td a") %>% html_attr("href"); players = c(); teams = c()
+            for (link in links){
+              match = grepl("players\\/[a-z]\\/", link)
+              if (match){
+                player_key = str_split(str_split(link,"players\\/[a-z]\\/")[[1]][2],"\\.html")[[1]][1]
+                players = players %>% c(player_key)
+              } else{
+                team_key = str_split(str_split(link,"teams\\/")[[1]][2],"\\/")[[1]][1]
+                teams = teams %>% c(team_key)
+              }
+            }
+            player_keys = unique(players);team_keys = unique(teams)
+            shoot_df$Team = factor(shoot_df$Team, levels = c("5TM","4TM","3TM","2TM",team_keys[order(team_keys)]))
+            
+            shoot_df_link_basis = shoot_df %>% distinct(Player, Age, .keep_all = T) %>% filter(is.na(Team)==F) %>% data.frame(key = player_keys[1:nrow(shoot_df %>% distinct(Player, Age, .keep_all = T) %>% filter(is.na(Team)==F))]) %>% select(Player,Age,key)
+            shoot_df_distinct = shoot_df %>% distinct(Player, Age, Playoffs, .keep_all = T) %>% filter(is.na(Team)==F) %>% inner_join(shoot_df_link_basis,by = join_by(Player,Age))
+            shoot_df_comp = shoot_df_distinct %>% #data.frame(key = player_keys[1:nrow(df_distinct)]) %>% 
+              select(-Rk) %>% data.frame(Year = i) %>% select(key, Year, everything()) %>% 
+              left_join(df %>% select(key,Playoffs,FGA),by = join_by(key,Playoffs)) %>% mutate(across(!matches("^(key|Year|Player|Age|Team|Pos|Awards)"), as.numeric))
+            
+            shoot_df = shoot_df_comp %>% as_tibble() %>% transmute(key, Year, Player, Age, Team, Pos, Dist., 
+                                                                   X0.3A = X0.3*FGA,
+                                                                   X0.3M = X0.3*FGA*X0.3.1,
+                                                                   X3.10A = X3.10*FGA,
+                                                                   X3.10M = X3.10*FGA*X3.10.1,
+                                                                   X10.16A = X10.16*FGA,
+                                                                   X10.16M = X10.16*FGA*X10.16.1,
+                                                                   X16.3A = X16.3P*FGA,
+                                                                   X16.3M = X16.3P*FGA*X16.3P.1,
+                                                                   Playoffs
+                                                                   )
+            
+            shoot_df %>% write.csv(paste0("Shooting/",i,".csv"))
+            # print("Data collected for:")
+            # print(i)
+          }
         }
         
       } else{
@@ -104,6 +170,12 @@ if (!exist_yn){
     all_data_standard = all_data_standard %>% rbind.data.frame(year_data)
   }
   
+  shoot_files = list.files(path = "Shooting/", pattern = 'csv')
+  shooting = data.frame()
+  for (file in shoot_files){shooting = shooting %>% rbind.data.frame(read.csv(paste0("Shooting/",file))[,-1])}
+  shooting = shooting %>% mutate(across(where(is.numeric), ~ replace_na(.x, 0)))
+  
+  all_data_standard = all_data_standard %>% left_join(shooting %>% select(-Player,-Age,-Team,-Pos),by = join_by(key, Year, Playoffs))
   all_data_standard = all_data_standard %>% mutate(Year = paste0(Year-1,"-",Year), Player = paste0(Player, " (", key, ")")) %>% select(-key)
   df = all_data_standard %>% as_tibble()
   
@@ -123,7 +195,15 @@ if (!exist_yn){
       FT   = sum(FT),
       FTA  = sum(FTA),
       FG = sum(FG),
-      FGA = sum(FGA)
+      FGA = sum(FGA),
+      X0.3FG = sum(X0.3M),
+      X0.3FGA = sum(X0.3A),
+      X3.10FG = sum(X3.10M),
+      X3.10FGA = sum(X3.10A),
+      X10.16FG = sum(X10.16M),
+      X10.16FGA = sum(X10.16A),
+      X16.3FG = sum(X16.3M),
+      X16.3FGA = sum(X16.3A)
     ) %>%
     transmute(
       Year,
@@ -134,7 +214,11 @@ if (!exist_yn){
       la3P.         = X3P / X3PA,
       la2P.         = X2P / X2PA,
       laFT.         = FT / FTA,
-      laFG.         = FG / FGA
+      laFG.         = FG / FGA,
+      la0.3.        = X0.3FG / X0.3FGA,
+      la3.10.       = X3.10FG / X3.10FGA,
+      la10.16.      = X10.16FG / X10.16FGA,
+      la16.3.       = X16.3FG / X16.3FGA
     ) %>%
     left_join(
       median_perM(df, c("PTS", "TRB", "DRB", "ORB", "AST", "STL", "BLK", "TOV")),
