@@ -1,14 +1,13 @@
-library(tidyverse);library(lubridate);library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny); library(patchwork); library(shinyjs)
+library(tidyverse);library(lubridate);library(httr); library(XML); library(rvest); library(ggplot2); library(ggthemes); library(plotly); library(gridExtra); library(DT); library(scales); library(shinyWidgets); library(shiny); library(patchwork); library(shinyjs); library(grid)
 source("totals_collect.R") # totals_collect.R must be run!
 today_file = paste0("Complete Data/Totals_s_",Sys.Date(),".csv",collapse = "")
 df_ = read.csv(today_file)[,-1] %>% as_tibble() %>% inner_join(read.csv("Complete Data/team_hex_colors.csv")[,-1], by = "Team")
-gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 29,0.5*max(G),0.75*max(G)))
+gpl_df = df_ %>% group_by(Year) %>% summarize(.groups = "drop",gpl = ifelse(max(G) < 41,0.5*max(G),0.75*max(G)))
 df_ = df_ %>% inner_join(gpl_df,by = join_by(Year))
 df_1 = df_ %>% filter(G > (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df_2 = df_ %>% filter(G <= (1/3)*(gpl)) %>% select(-gpl) %>% arrange(desc(valueAdd/G));df = df_1 %>% rbind.data.frame(df_2)
 df$Player = iconv(df$Player, to = "UTF-8");maxYr = max(df$Year)
 
 lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% as_tibble()
-#lga = read.csv("Complete Data/avgsSummary.csv")[,-1] %>% separate(Year, into = c("pre", "Year"), sep = "\\-") %>% select(-pre) %>% select(Year, everything()) %>% as_tibble()
 
 menu_map = function(input){
   map = read.csv("Complete Data/menu_options.csv")[,-1]
@@ -646,15 +645,15 @@ server = function(input, output, session) {
       
       static_line = static
       static_line = static_line %>% mutate(dateDisp2 = ifelse((G %in% c(ra,max(static_line$G))|Stat_ra == max(static_line$Stat_ra)),format(Date, "%m/%d/%y"),""))
-      static_line = static_line %>% left_join(static_line %>% distinct(Stat_ra, .keep_all = T) %>% transmute(G, dateDisp = dateDisp2),by = join_by(G)) %>% select(-dateDisp2) %>% mutate(dateDisp = ifelse(is.na(dateDisp),"",dateDisp))
+      static_line = static_line %>% left_join(static_line %>% distinct(Stat_ra, .keep_all = T) %>% transmute(G, Player, dateDisp = dateDisp2),by = join_by(G,Player)) %>% select(-dateDisp2) %>% mutate(dateDisp = ifelse(is.na(dateDisp),"",dateDisp))
       static_line$Player = factor(x = static_line$Player, levels = c(p1_df$Player[1],p2_df$Player[2]))
       if (ra > nrow(p1_df)){
         plot = data.frame(Error = paste0("At least one player selected has not played enough games in the time period. \n Reduce rolling average (currently ",ra,") or update time period.")) %>% ggplot() + geom_label(aes(x = 1, y = 1, label = Error)) + theme_void()
       } else{
         if (date_input == 'Past year (365 days)'){
           if (ra==1){
-            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
-              geom_line() + scale_y_continuous(name = stat_input) +
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+              geom_line(aes(linetype = Player)) + scale_y_continuous(name = stat_input) +
               scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
               theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
               scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
@@ -662,8 +661,8 @@ server = function(input, output, session) {
               geom_point()
             
           } else{
-            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
-              geom_line() + scale_y_continuous(name = stat_input) +
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player)) + theme_bw() + geom_vline(xintercept = 0, color = "grey10",alpha = I(.3)) +
+              geom_line(aes(linetype = Player)) + scale_y_continuous(name = stat_input) +
               scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
               theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
               scale_x_continuous(name = "",labels = function(x) {ifelse(x == 0, paste0("Start of ",szns[2]),ifelse(x < 0,paste0(abs(x), " games prior"),paste0(x, " games since")))}) + 
@@ -671,15 +670,15 @@ server = function(input, output, session) {
           }
         } else{
           if (ra==1){
-            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-              geom_line() + scale_y_continuous(name = stat_input) +
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player)) + theme_bw() +
+              geom_line(aes(linetype = Player)) + scale_y_continuous(name = stat_input) +
               scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
               theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
               scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp),vjust = 0, size = 2, label.padding = unit(0.25, "lines"),show.legend=F) +
               geom_point()
           } else{
-            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player, linetype = Player)) + theme_bw() +
-              geom_line() + scale_y_continuous(name = stat_input) +
+            plot = static_line %>% ggplot(aes(x = G, y = Stat_ra, color = Player)) + theme_bw() +
+              geom_line(aes(linetype = Player)) + scale_y_continuous(name = stat_input) +
               scale_color_manual(name = paste0(ra,"-game rolling avg."), values = c(top_color$Hex[1],"grey50")) +
               theme(legend.position = "top") + scale_linetype_manual(name = paste0(ra,"-game rolling avg."), values = c("solid", "dashed")) +
               scale_x_continuous("Games Played (Time Span)") + geom_label(data = static_line %>% filter(dateDisp!=''), aes(label = dateDisp), vjust = 0, size = 2, label.padding = unit(0.1, "lines"),show.legend=F)
@@ -793,7 +792,7 @@ server = function(input, output, session) {
         p1_df = p1_df %>% mutate(Player = paste0(fi1,". ",ln1))
       } else{
         fi1 = str_split(p1_df$Player[1],"")[[1]][1];ln1 = rev(str_split(p1_df$Player[1]," ")[[1]][!(str_split(p1_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2];fi2 = str_split(p2_df$Player[1],"")[[1]][1];ln2 = rev(str_split(p2_df$Player[1]," ")[[1]][!(str_split(p2_df$Player[1]," ")[[1]] %in% c("Jr.","II","III"))])[2]
-        if ((fi1 == fi2 & ln1 == ln2)==F){
+        if (!(fi1 == fi2 & ln1 == ln2)){
           p1_df = p1_df %>% mutate(Player = paste0(fi1,". ",ln1))
           p2_df = p2_df %>% mutate(Player = paste0(fi2,". ",ln2))
         }
@@ -1187,17 +1186,18 @@ server = function(input, output, session) {
         sp_output$key = factor(sp_output$key,levels = rev(sp_output$key))
         sp_output %>% ggplot(aes(x = key, y = value, fill = col_n)) + geom_bar(color = "black",stat="identity",width=I(1/2),alpha = I(.8)) +
           theme_bw() + geom_hline(yintercept = 0) + coord_flip() +
-          #scale_y_continuous("Value Added") + 
-          scale_y_continuous(
-            name = "Value Added",
-            breaks = pretty(sp_output$value),  # or use a custom vector like c(-10, 0, 10)
-            labels = function(x) ifelse(x == 0, "League Average", x),
-            expand = expansion(mult = c(0.1, 0.2))  # 10% padding above the max
-          ) + scale_x_discrete("") + scale_fill_manual(values = unique(c(sp_output$col_n))) + 
+          #scale_y_continuous("Value Added") 
+          scale_x_discrete("") + scale_fill_manual(values = unique(c(sp_output$col_n))) + 
           theme(legend.position = "none") + ggtitle(player_input_2,subtitle = date_choice) + 
           geom_text(aes(y = abs,label = label),hjust = 0,fontface="bold") +
           geom_bar(data = season_avgs,aes(x = key, y = value),stat = "identity",width = I(.075),fill = "black",alpha = I(.3)) + 
-          geom_point(data = season_avgs,aes(x = key, y = value),size = 3,alpha = I(.25),inherit.aes = FALSE)
+          geom_point(data = season_avgs,aes(x = key, y = value),size = 3,alpha = I(.25),inherit.aes = FALSE) + 
+          scale_y_continuous(
+            name = "Value Added",
+            breaks = pretty(sort(c(sp_output$value,season_avgs$value))),  # or use a custom vector like c(-10, 0, 10)
+            labels = function(x) ifelse(x == 0, "League Average", x),
+            expand = expansion(mult = c(0.1, 0.2))  # 10% padding above the max
+          )
         
       }
       
@@ -1640,7 +1640,7 @@ server = function(input, output, session) {
     req(input$sc_player2)
     filt_y = ifelse(input$sc_player2==input$sc_player1,input$sc_year1,"always_true")
     years = df %>% 
-      filter(Player == input$sc_player2 & Year > "1978-1979" & (Year %in% (filt_y)==F)) %>% # 1979-80 is the first year where all of these statistics are available
+      filter(Player == input$sc_player2 & Year > "1978-1979" & (!(Year %in% (filt_y)))) %>% # 1979-80 is the first year where all of these statistics are available
       pull(Year) %>% 
       unique() %>%
       sort(decreasing = TRUE)
@@ -1655,6 +1655,7 @@ server = function(input, output, session) {
         player_input_2 = input$sc_player2
         year_input_1 = input$sc_year1
         year_input_2 = input$sc_year2
+        same_year = ifelse(year_input_1 == year_input_2,T,F)
         
         tp_df = df %>% filter(Year %in% c(year_input_1, year_input_2))
         top_color = tp_df$Hex[which(tp_df$Player == player_input_1 & tp_df$Year == year_input_1)]
@@ -1662,17 +1663,17 @@ server = function(input, output, session) {
         tp_df$Year = factor(tp_df$Year, levels = unique(c(year_input_1, year_input_2)))
         tp_df$Year_dp = paste0("'", str_extract(tp_df$Year, "\\d{2}$"))
         tp_df$Player_dp = str_replace(tp_df$Player, "\\s*\\(.*\\)$", "")
+        tp_df = tp_df %>% mutate(Player_dp = ifelse(nchar(Player_dp) > 15,sub(" ", "\n", Player_dp),Player_dp))
         
         # Plot 1: Scoring Volume vs. Efficiency
         tp_df_1 = tp_df %>% 
-          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
-                                    sprintf("%.2f", (PTS/G)), " PPG on ", eFG., " eFG")) %>% 
-          arrange(Player)
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, "\n", sprintf("%.2f", (PTS/G)), " PPG (", round(100*eFG.,1), " eFG%)")) %>% 
+          arrange(Player) %>% mutate(plot_color = paste(Year_dp,Player_dp))
         
-        p1 = tp_df_1 %>% 
-          ggplot(aes(x = vaPTSv/G, y = PTSAdd/G, color = Year)) + 
+        p1 = tp_df_1 %>%
+          ggplot(aes(x = vaPTSv/G, y = PTSAdd/G, color = plot_color)) +
           geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
-          geom_point(alpha = 0.2) +
+          geom_point(alpha = ifelse(same_year,0.2,0.1)) +
           geom_point(
             data = tp_df_1 %>%
               filter((Player == player_input_1 & Year == year_input_1) |
@@ -1680,51 +1681,52 @@ server = function(input, output, session) {
             alpha = 1, size = 2
           ) +
           scale_y_continuous(
-            name = "Efficiency Points Added",
+            name = "Efficiency",
             labels = function(x) ifelse(x == 0, "League Average", x),
             expand = expansion(mult = c(0.1, 0.1))
-          ) + 
-          geom_hline(yintercept = 0) + 
+          ) +
+          geom_hline(yintercept = 0) +
           scale_x_continuous(
-            name = "Scoring Volume Added",
+            name = "Scoring Volume",
             labels = function(x) ifelse(x == 0, "League Average", x),
             expand = expansion(mult = c(0.2, 0.2))
-          ) + 
+          ) +
           geom_vline(xintercept = 0) +
-          theme_bw() + 
+          theme_bw() +
           geom_segment(
             data = tp_df_1 %>%
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse(PTSAdd/G == max(PTSAdd/G),
-                                    (PTSAdd/G) + 1/3,
-                                    (PTSAdd/G) - 1/3)),
-            aes(x = vaPTSv/G, xend = vaPTSv/G, y = PTSAdd/G, yend = y_adj, color = Year),
+                                    (PTSAdd/G) + 1,
+                                    (PTSAdd/G) - 1)),
+            aes(x = vaPTSv/G, xend = vaPTSv/G, y = PTSAdd/G, yend = y_adj, color = plot_color),
             inherit.aes = FALSE, show.legend = FALSE
-          ) + 
+          ) +
           geom_label(
             data = tp_df_1 %>%
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse(PTSAdd/G == max(PTSAdd/G),
-                                    (PTSAdd/G) + 1/3,
-                                    (PTSAdd/G) - 1/3)),
-            aes(x = vaPTSv/G, y = y_adj, label = disPlayer, color = Year),
+                                    (PTSAdd/G) + 1,
+                                    (PTSAdd/G) - 1)),
+            aes(x = vaPTSv/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
-          ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+          ) +
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_1$plot_color[1], tp_df_1$plot_color[2])))
+        
         
         # Plot 2: Assists vs. Turnovers
         tp_df_2 = tp_df %>% 
-          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
-                                    sprintf("%.2f", (AST/G)), " APG on ", 
-                                    sprintf("%.1f", (TOV/G)), " TOV")) %>% 
-          arrange(Player)
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, "\n", 
+                                    sprintf("%.2f", (AST/G)), " APG (", 
+                                    sprintf("%.1f", (TOV/G)), " TOV)")) %>% 
+          arrange(Player) %>% mutate(plot_color = paste(Year_dp,Player_dp))
         
         p2 = tp_df_2 %>% 
-          ggplot(aes(x = vaTOV/G, y = vaAST/G, color = Year)) + 
+          ggplot(aes(x = vaTOV/G, y = vaAST/G, color = plot_color)) + 
           geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
-          geom_point(alpha = 0.2) +
+          geom_point(alpha = ifelse(same_year,0.2,0.1)) +
           geom_point(
             data = tp_df_2 %>%
               filter((Player == player_input_1 & Year == year_input_1) |
@@ -1749,9 +1751,9 @@ server = function(input, output, session) {
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse(vaAST/G == max(vaAST/G),
-                                    (vaAST/G) + 0.4,
-                                    (vaAST/G) - 0.4)),
-            aes(x = vaTOV/G, xend = vaTOV/G, y = vaAST/G, yend = y_adj, color = Year),
+                                    (vaAST/G) + 1,
+                                    (vaAST/G) - 1)),
+            aes(x = vaTOV/G, xend = vaTOV/G, y = vaAST/G, yend = y_adj, color = plot_color),
             inherit.aes = FALSE, show.legend = FALSE
           ) + 
           geom_label(
@@ -1759,24 +1761,24 @@ server = function(input, output, session) {
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse(vaAST/G == max(vaAST/G),
-                                    (vaAST/G) + 0.5,
-                                    (vaAST/G) - 0.5)),
-            aes(x = vaTOV/G, y = y_adj, label = disPlayer, color = Year),
+                                    (vaAST/G) + 1,
+                                    (vaAST/G) - 1)),
+            aes(x = vaTOV/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
           ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_2$plot_color[1], tp_df_2$plot_color[2])))
         
         # Plot 3: Stocks vs. Rebounds
         tp_df_3 = tp_df %>% 
-          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
+          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, "\n", 
                                     sprintf("%.2f", ((STL+BLK)/G)), " STK/G & ", 
                                     sprintf("%.2f", (TRB/G)), " TRB")) %>% 
-          arrange(Player)
+          arrange(Player) %>% mutate(plot_color = paste(Year_dp,Player_dp))
         
         p3 = tp_df_3 %>% 
-          ggplot(aes(x = (vaORB+vaDRB)/G, y = (vaSTL+vaBLK)/G, color = Year)) + 
+          ggplot(aes(x = (vaORB+vaDRB)/G, y = (vaSTL+vaBLK)/G, color = plot_color)) + 
           geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
-          geom_point(alpha = 0.2) +
+          geom_point(alpha = ifelse(same_year,0.2,0.1)) +
           geom_point(
             data = tp_df_3 %>%
               filter((Player == player_input_1 & Year == year_input_1) |
@@ -1784,7 +1786,7 @@ server = function(input, output, session) {
             alpha = 1, size = 2
           ) +
           scale_y_continuous(
-            name = "Steals + Blocks Added",
+            name = "Stocks Added",
             labels = function(x) ifelse(x == 0, "League Average", x),
             expand = expansion(mult = c(0.1, 0.1))
           ) + 
@@ -1801,10 +1803,10 @@ server = function(input, output, session) {
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse((vaSTL+vaBLK)/G == max((vaSTL+vaBLK)/G),
-                                    ((vaSTL+vaBLK)/G) + 0.15,
-                                    ((vaSTL+vaBLK)/G) - 0.15)),
+                                    ((vaSTL+vaBLK)/G) + 1/4,
+                                    ((vaSTL+vaBLK)/G) - 1/4)),
             aes(x = (vaORB+vaDRB)/G, xend = (vaORB+vaDRB)/G, 
-                y = (vaSTL+vaBLK)/G, yend = y_adj, color = Year),
+                y = (vaSTL+vaBLK)/G, yend = y_adj, color = plot_color),
             inherit.aes = FALSE, show.legend = FALSE
           ) + 
           geom_label(
@@ -1812,70 +1814,76 @@ server = function(input, output, session) {
               filter((Player == player_input_1 & Year == year_input_1) |
                        (Player == player_input_2 & Year == year_input_2)) %>%
               mutate(y_adj = ifelse((vaSTL+vaBLK)/G == max((vaSTL+vaBLK)/G),
-                                    ((vaSTL+vaBLK)/G) + 0.15,
-                                    ((vaSTL+vaBLK)/G) - 0.15)),
-            aes(x = (vaORB+vaDRB)/G, y = y_adj, label = disPlayer, color = Year),
+                                    ((vaSTL+vaBLK)/G) + 1/4,
+                                    ((vaSTL+vaBLK)/G) - 1/4)),
+            aes(x = (vaORB+vaDRB)/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
           ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_3$plot_color[1], tp_df_3$plot_color[2])))
         
-        # Plot 4: 3s vs. 2s + FTs
-        tp_df_4 = tp_df %>% 
-          mutate(disPlayer = paste0(Year_dp, " ", Player_dp, ": ", 
-                                    100*(X3P.), " 3P% | ", 100*(X2P.), " 2P%")) %>% 
-          arrange(Player)
+        # Plot 4: Scoring Levels
+        tp_df_4 = tp_df %>% arrange(Player) %>% left_join(lga,by = join_by(Year)) %>% mutate(
+          X0.3eff = (((X0.3M/X0.3A)-la0.3.)*(X0.3A)),
+          X3.10eff = (((X3.10M/X3.10A)-la3.10.)*(X3.10A)),
+          X10.16eff = (((X10.16M/X10.16A)-la10.16.)*(X10.16A)),
+          X16.3eff = (((X16.3M/X16.3A)-la16.3.)*(X16.3A)),
+        ) %>% inner_join(gpl_df,by = join_by(Year))
+        perc_df = tp_df_4 %>% transmute(Year, Player
+                                        ,FT. = paste0(100*(FT.),"% (",FT,"/",FTA,")")
+                                        ,X0.3 = paste0(round(100*(X0.3M/X0.3A),2),"% (",round(X0.3M),"/",round(X0.3A),")")
+                                        ,X3.10 = paste0(round(100*(X3.10M/X3.10A),2),"% (",round(X3.10M),"/",round(X3.10A),")")
+                                        ,X10.16 = paste0(round(100*(X10.16M/X10.16A),2),"% (",round(X10.16M),"/",round(X10.16A),")")
+                                        ,X16.3 = paste0(round(100*(X16.3M/X16.3A),2),"% (",round(X16.3M),"/",round(X16.3A),")")
+                                        ,X3P. = paste0(100*(X3P.),"% (",X3P,"/",X3PA,")")
+                                        ) %>% gather('level_abb','perc_value',-Year,-Player) %>% left_join(data.frame(level = c('3-Point','Free Throw','Rim (0-3 feet)','Floater (3-10 feet)','Midrange (10-16 feet)','Long Midrange (16+ feet)')) %>% cbind.data.frame(level_abb = c('X3P.','FT.','X0.3','X3.10','X10.16','X16.3')),join_by(level_abb)) %>% filter(!is.na(Player))
+        tp_df_4 = tp_df_4 %>% filter(FGA > min(c(2.5*(tp_df_4$gpl[which(!is.na(tp_df_4$Player))]),tp_df_4$FGA[which(!is.na(tp_df_4$Player))]))) %>% 
+          select(matches("Year|Player|G|Team|X3PAdd|FTAdd|eff")) %>% 
+          gather("category","value",-Year,-Player,-Team,-Year_dp,-Player_dp,-G) %>% mutate(group = ifelse(grepl("eff|2PA",category),"2-Pointers",ifelse(grepl("FT",category),"Free Throws","3-Pointers"))) %>% 
+          mutate(value = ifelse(group == "3-Pointers",3*value,ifelse(group == "2-Pointers",2*value,value))) %>% inner_join(read.csv("Complete Data/scoring_levels.csv")[,-1],by = join_by(category)) %>% select(-category) %>%
+          left_join(perc_df %>% select(-level_abb), by = join_by(level,Year,Player))
+        tp_df_4$level = factor(tp_df_4$level,levels = read.csv("Complete Data/scoring_levels.csv")[,3])
+        tp_df_4$group = factor(tp_df_4$group,levels = c("Free Throws","2-Pointers","3-Pointers"))
+        tp_df_4 = tp_df_4 %>% inner_join(tp_df_4 %>% filter((Player == player_input_1 & Year == year_input_1) | (Player == player_input_2 & Year == year_input_2)) %>% 
+                                           group_by(level) %>% summarise(.groups = "drop",max_value = max(value/G)),by = join_by(level)) %>% mutate(plot_color = paste(Year_dp,Player_dp))
         
-        p4 = tp_df_4 %>% 
-          filter(FGA > 25) %>% 
-          ggplot(aes(x = (PTSAdd-(3*(X3PAdd)))/G, y = 3*(X3PAdd)/G, color = Year)) + 
-          geom_smooth(se = FALSE, method = "lm", formula = 'y ~ x', color = "grey70", alpha = 0.75) +
-          geom_point(alpha = 0.2) +
-          geom_point(
-            data = tp_df_4 %>%
-              filter((Player == player_input_1 & Year == year_input_1) |
-                       (Player == player_input_2 & Year == year_input_2)),
-            alpha = 1, size = 2
-          ) +
-          scale_y_continuous(
-            name = "3-Pointers Added",
-            labels = function(x) ifelse(x == 0, "League Average", x),
-            expand = expansion(mult = c(0.1, 0.1))
-          ) + 
-          geom_hline(yintercept = 0) + 
-          scale_x_continuous(
-            name = "2-Pointers + Free Throws Added",
-            labels = function(x) ifelse(x == 0, "League Average", x),
-            expand = expansion(mult = c(0.2, 0.2))
-          ) + 
-          geom_vline(xintercept = 0) +
-          theme_bw() + 
+        p4 = tp_df_4 %>% filter(is.na(Player)) %>% 
+          ggplot(aes(x = level, y = value/G)) + geom_jitter(alpha = ifelse(same_year,0.2,0.1)) + geom_hline(yintercept = 0) +
+          facet_grid(. ~ group, scales = 'free_x', space = 'free_x') + theme_bw() +
+          scale_y_continuous(name = "Scoring Efficiency",
+                             labels = function(x) ifelse(x == 0, "League Average", x),
+                             expand = expansion(mult = c(0.1, 0.1))) + scale_x_discrete("") +
           geom_segment(
             data = tp_df_4 %>%
-              filter((Player == player_input_1 & Year == year_input_1) |
-                       (Player == player_input_2 & Year == year_input_2)) %>%
-              mutate(y_adj = ifelse(3*(X3PAdd)/G == max(3*(X3PAdd)/G),
-                                    3*(X3PAdd)/G + 0.2,
-                                    3*(X3PAdd)/G - 0.2)),
-            aes(x = (PTSAdd-(3*(X3PAdd)))/G, xend = (PTSAdd-(3*(X3PAdd)))/G,
-                y = 3*(X3PAdd)/G, yend = y_adj, color = Year),
+              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                       (Player == player_input_2 & Year == year_input_2))) %>%
+              mutate(y_adj = ifelse(value/G == max_value,
+                                    (value/G) + 0.45,
+                                    (value/G) - 0.45)),
+            aes(color = plot_color, x = level, xend = level, y = value/G, yend = y_adj),
             inherit.aes = FALSE, show.legend = FALSE
           ) + 
           geom_label(
             data = tp_df_4 %>%
-              filter((Player == player_input_1 & Year == year_input_1) |
-                       (Player == player_input_2 & Year == year_input_2)) %>%
-              mutate(y_adj = ifelse(3*(X3PAdd)/G == max(3*(X3PAdd)/G),
-                                    3*(X3PAdd)/G + 0.2,
-                                    3*(X3PAdd)/G - 0.2)),
-            aes(x = (PTSAdd-(3*(X3PAdd)))/G, y = y_adj, label = disPlayer, color = Year),
+              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                    (Player == player_input_2 & Year == year_input_2))) %>%
+              mutate(y_adj = ifelse(value/G == max_value,
+                                    (value/G) + 0.45,
+                                    (value/G) - 0.45)),
+            aes(color = plot_color, x = level, y = y_adj, label = paste0(Year_dp," ",Player_dp,"\n",perc_value)),
             size = 3, show.legend = FALSE
-          ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(year_input_1, year_input_2)))
+          ) +
+          geom_point(
+            data = tp_df_4 %>%
+              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                    (Player == player_input_2 & Year == year_input_2))),
+            aes(color = plot_color)
+          ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_4$plot_color[1], tp_df_4$plot_color[2])))
+        
         
         # Combine plots
         theme_set(theme_minimal(base_size = 10))
         (p1 + p4 + p2 + p3) + plot_layout(guides = "collect") &
-          theme(legend.position = "top", axis.text.y = element_text(angle = 90, hjust = 0.5))
+          theme(legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5))
     })
   })
   
