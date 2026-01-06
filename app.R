@@ -257,7 +257,7 @@ ui =
                                      hr(),
                                      fluidRow(
                                        column(12,
-                                              plotOutput("sc_comparison_plots", height = "800px")
+                                              plotOutput("sc_comparison_plots", height = "auto")
                                        )
                                      )
                                    )
@@ -1650,6 +1650,7 @@ server = function(input, output, session) {
   output$sc_comparison_plots = renderPlot({
     req(input$sc_compare)
     isolate({
+      screen_width = session$clientData$output_sc_comparison_plots_width
       req(input$sc_player1, input$sc_player2, input$sc_year1, input$sc_year2)
         player_input_1 = input$sc_player1
         player_input_2 = input$sc_player2
@@ -1712,8 +1713,7 @@ server = function(input, output, session) {
                                     (PTSAdd/G) - 1)),
             aes(x = vaPTSv/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
-          ) +
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_1$plot_color[1], tp_df_1$plot_color[2])))
+          ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_1$plot_color[which(tp_df_1$Player==player_input_1&tp_df_1$Year==year_input_1)][1], tp_df_1$plot_color[which(tp_df_1$Player==player_input_2&tp_df_1$Year==year_input_2)][1])))
         
         
         # Plot 2: Assists vs. Turnovers
@@ -1765,8 +1765,7 @@ server = function(input, output, session) {
                                     (vaAST/G) - 1)),
             aes(x = vaTOV/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
-          ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_2$plot_color[1], tp_df_2$plot_color[2])))
+          ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_2$plot_color[which(tp_df_2$Player==player_input_1&tp_df_2$Year==year_input_1)][1], tp_df_2$plot_color[which(tp_df_2$Player==player_input_2&tp_df_2$Year==year_input_2)][1])))
         
         # Plot 3: Stocks vs. Rebounds
         tp_df_3 = tp_df %>% 
@@ -1818,75 +1817,147 @@ server = function(input, output, session) {
                                     ((vaSTL+vaBLK)/G) - 1/4)),
             aes(x = (vaORB+vaDRB)/G, y = y_adj, label = disPlayer, color = plot_color),
             size = 3, show.legend = FALSE
-          ) + 
-          scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_3$plot_color[1], tp_df_3$plot_color[2])))
+          ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_3$plot_color[which(tp_df_3$Player==player_input_1&tp_df_3$Year==year_input_1)][1], tp_df_3$plot_color[which(tp_df_3$Player==player_input_2&tp_df_3$Year==year_input_2)][1])))
         
         # Plot 4: Scoring Levels
-        tp_df_4 = tp_df %>% arrange(Player) %>% left_join(lga,by = join_by(Year)) %>% mutate(
-          X0.3eff = (((X0.3M/X0.3A)-la0.3.)*(X0.3A)),
-          X3.10eff = (((X3.10M/X3.10A)-la3.10.)*(X3.10A)),
-          X10.16eff = (((X10.16M/X10.16A)-la10.16.)*(X10.16A)),
-          X16.3eff = (((X16.3M/X16.3A)-la16.3.)*(X16.3A)),
-        ) %>% inner_join(gpl_df,by = join_by(Year))
-        perc_df = tp_df_4 %>% transmute(Year, Player
-                                        ,FT. = paste0(100*(FT.),"% (",FT,"/",FTA,")")
-                                        ,X0.3 = paste0(round(100*(X0.3M/X0.3A),2),"% (",round(X0.3M),"/",round(X0.3A),")")
-                                        ,X3.10 = paste0(round(100*(X3.10M/X3.10A),2),"% (",round(X3.10M),"/",round(X3.10A),")")
-                                        ,X10.16 = paste0(round(100*(X10.16M/X10.16A),2),"% (",round(X10.16M),"/",round(X10.16A),")")
-                                        ,X16.3 = paste0(round(100*(X16.3M/X16.3A),2),"% (",round(X16.3M),"/",round(X16.3A),")")
-                                        ,X3P. = paste0(100*(X3P.),"% (",X3P,"/",X3PA,")")
-                                        ) %>% gather('level_abb','perc_value',-Year,-Player) %>% left_join(data.frame(level = c('3-Point','Free Throw','Rim (0-3 feet)','Floater (3-10 feet)','Midrange (10-16 feet)','Long Midrange (16+ feet)')) %>% cbind.data.frame(level_abb = c('X3P.','FT.','X0.3','X3.10','X10.16','X16.3')),join_by(level_abb)) %>% filter(!is.na(Player))
-        tp_df_4 = tp_df_4 %>% filter(FGA > min(c(2.5*(tp_df_4$gpl[which(!is.na(tp_df_4$Player))]),tp_df_4$FGA[which(!is.na(tp_df_4$Player))]))) %>% 
-          select(matches("Year|Player|G|Team|X3PAdd|FTAdd|eff")) %>% 
-          gather("category","value",-Year,-Player,-Team,-Year_dp,-Player_dp,-G) %>% mutate(group = ifelse(grepl("eff|2PA",category),"2-Pointers",ifelse(grepl("FT",category),"Free Throws","3-Pointers"))) %>% 
-          mutate(value = ifelse(group == "3-Pointers",3*value,ifelse(group == "2-Pointers",2*value,value))) %>% inner_join(read.csv("Complete Data/scoring_levels.csv")[,-1],by = join_by(category)) %>% select(-category) %>%
-          left_join(perc_df %>% select(-level_abb), by = join_by(level,Year,Player))
-        tp_df_4$level = factor(tp_df_4$level,levels = read.csv("Complete Data/scoring_levels.csv")[,3])
-        tp_df_4$group = factor(tp_df_4$group,levels = c("Free Throws","2-Pointers","3-Pointers"))
-        tp_df_4 = tp_df_4 %>% inner_join(tp_df_4 %>% filter((Player == player_input_1 & Year == year_input_1) | (Player == player_input_2 & Year == year_input_2)) %>% 
-                                           group_by(level) %>% summarise(.groups = "drop",max_value = max(value/G)),by = join_by(level)) %>% mutate(plot_color = paste(Year_dp,Player_dp))
-        
-        p4 = tp_df_4 %>% filter(is.na(Player)) %>% 
-          ggplot(aes(x = level, y = value/G)) + geom_jitter(alpha = ifelse(same_year,0.2,0.1)) + geom_hline(yintercept = 0) +
-          facet_grid(. ~ group, scales = 'free_x', space = 'free_x') + theme_bw() +
-          scale_y_continuous(name = "Scoring Efficiency",
-                             labels = function(x) ifelse(x == 0, "League Average", x),
-                             expand = expansion(mult = c(0.1, 0.1))) + scale_x_discrete("") +
-          geom_segment(
-            data = tp_df_4 %>%
-              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
-                       (Player == player_input_2 & Year == year_input_2))) %>%
-              mutate(y_adj = ifelse(value/G == max_value,
-                                    (value/G) + 0.45,
-                                    (value/G) - 0.45)),
-            aes(color = plot_color, x = level, xend = level, y = value/G, yend = y_adj),
-            inherit.aes = FALSE, show.legend = FALSE
-          ) + 
-          geom_label(
-            data = tp_df_4 %>%
-              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
-                                                    (Player == player_input_2 & Year == year_input_2))) %>%
-              mutate(y_adj = ifelse(value/G == max_value,
-                                    (value/G) + 0.45,
-                                    (value/G) - 0.45)),
-            aes(color = plot_color, x = level, y = y_adj, label = paste0(Year_dp," ",Player_dp,"\n",perc_value)),
-            size = 3, show.legend = FALSE
-          ) +
-          geom_point(
-            data = tp_df_4 %>%
-              filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
-                                                    (Player == player_input_2 & Year == year_input_2))),
-            aes(color = plot_color)
-          ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_4$plot_color[1], tp_df_4$plot_color[2])))
-        
+        if (any(year_input_1 < "1996-1997",year_input_2 < "1996-1997")){
+          tp_df_4 = tp_df %>% arrange(Player) %>% left_join(lga,by = join_by(Year)) %>% 
+            inner_join(gpl_df,by = join_by(Year))
+          perc_df = tp_df_4 %>% transmute(Year, Player
+                                          ,FT. = paste0(100*(FT.),"% (",FT,"/",FTA,")")
+                                          ,X2P. = paste0(100*(X2P.),"% (",X2P,"/",X2PA,")")
+                                          # ,X0.3 = paste0(round(100*(X0.3M/X0.3A),2),"% (",round(X0.3M),"/",round(X0.3A),")")
+                                          # ,X3.10 = paste0(round(100*(X3.10M/X3.10A),2),"% (",round(X3.10M),"/",round(X3.10A),")")
+                                          # ,X10.16 = paste0(round(100*(X10.16M/X10.16A),2),"% (",round(X10.16M),"/",round(X10.16A),")")
+                                          # ,X16.3 = paste0(round(100*(X16.3M/X16.3A),2),"% (",round(X16.3M),"/",round(X16.3A),")")
+                                          ,X3P. = paste0(100*(X3P.),"% (",X3P,"/",X3PA,")")
+          ) %>% gather('level_abb','perc_value',-Year,-Player) %>% left_join(data.frame(level = c('3-Point','Free Throw','2-Point')) %>% cbind.data.frame(level_abb = c('X3P.','FT.','X2P.')),join_by(level_abb)) %>% filter(!is.na(Player))
+          tp_df_4 = tp_df_4 %>% filter(FGA > min(c(2.5*(tp_df_4$gpl[which(!is.na(tp_df_4$Player))]),tp_df_4$FGA[which(!is.na(tp_df_4$Player))]))) %>% 
+            select(matches("Year|Player|G|Team|X3PAdd|FTAdd|X2PAdd")) %>% 
+            gather("category","value",-Year,-Player,-Team,-Year_dp,-Player_dp,-G) %>% mutate(group = ifelse(grepl("2P",category),"2-Pointers",ifelse(grepl("FT",category),"Free Throws","3-Pointers"))) %>% 
+            mutate(value = ifelse(group == "3-Pointers",3*value,ifelse(group == "2-Pointers",2*value,value))) %>% inner_join(read.csv("Complete Data/scoring_levels.csv")[,-1],by = join_by(category)) %>% select(-category) %>%
+            left_join(perc_df %>% select(-level_abb), by = join_by(level,Year,Player))
+          tp_df_4$level = factor(tp_df_4$level,levels = read.csv("Complete Data/scoring_levels.csv")[,3])
+          tp_df_4$group = factor(tp_df_4$group,levels = c("Free Throws","2-Pointers","3-Pointers"))
+          tp_df_4 = tp_df_4 %>% inner_join(tp_df_4 %>% filter((Player == player_input_1 & Year == year_input_1) | (Player == player_input_2 & Year == year_input_2)) %>% 
+                                             group_by(level) %>% summarise(.groups = "drop",max_value = max(value/G)),by = join_by(level)) %>% mutate(plot_color = paste(Year_dp,Player_dp))
+          
+          p4 = tp_df_4 %>% filter(is.na(Player)) %>% 
+            ggplot(aes(x = level, y = value/G)) + geom_jitter(alpha = ifelse(same_year,0.2,0.1)) + geom_hline(yintercept = 0) +
+            facet_grid(. ~ group, scales = 'free_x', space = 'free_x') + theme_bw() +
+            scale_y_continuous(name = "Scoring Efficiency",
+                               labels = function(x) ifelse(x == 0, "League Average", x),
+                               expand = expansion(mult = c(0.1, 0.1))) + scale_x_discrete("") +
+            geom_segment(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))) %>%
+                mutate(y_adj = ifelse(value/G == max_value,
+                                      (value/G) + 0.45,
+                                      (value/G) - 0.45)),
+              aes(color = plot_color, x = level, xend = level, y = value/G, yend = y_adj),
+              inherit.aes = FALSE, show.legend = FALSE
+            ) + 
+            geom_label(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))) %>%
+                mutate(y_adj = ifelse(value/G == max_value,
+                                      (value/G) + 0.45,
+                                      (value/G) - 0.45)),
+              aes(color = plot_color, x = level, y = y_adj, label = paste0(Year_dp," ",Player_dp,"\n",perc_value)),
+              size = 3, show.legend = FALSE
+            ) +
+            geom_point(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))),
+              aes(color = plot_color)
+            ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_4$plot_color[which(tp_df_4$Player==player_input_1&tp_df_4$Year==year_input_1)][1], tp_df_4$plot_color[which(tp_df_4$Player==player_input_2&tp_df_4$Year==year_input_2)][1])))
+          
+        } else{
+          tp_df_4 = tp_df %>% arrange(Player) %>% left_join(lga,by = join_by(Year)) %>% mutate(
+            X0.3eff = (((X0.3M/X0.3A)-la0.3.)*(X0.3A)),
+            X3.10eff = (((X3.10M/X3.10A)-la3.10.)*(X3.10A)),
+            X10.16eff = (((X10.16M/X10.16A)-la10.16.)*(X10.16A)),
+            X16.3eff = (((X16.3M/X16.3A)-la16.3.)*(X16.3A)),
+          ) %>% inner_join(gpl_df,by = join_by(Year))
+          perc_df = tp_df_4 %>% transmute(Year, Player
+                                          ,FT. = paste0(100*(FT.),"% (",FT,"/",FTA,")")
+                                          ,X0.3 = paste0(round(100*(X0.3M/X0.3A),2),"% (",round(X0.3M),"/",round(X0.3A),")")
+                                          ,X3.10 = paste0(round(100*(X3.10M/X3.10A),2),"% (",round(X3.10M),"/",round(X3.10A),")")
+                                          ,X10.16 = paste0(round(100*(X10.16M/X10.16A),2),"% (",round(X10.16M),"/",round(X10.16A),")")
+                                          ,X16.3 = paste0(round(100*(X16.3M/X16.3A),2),"% (",round(X16.3M),"/",round(X16.3A),")")
+                                          ,X3P. = paste0(100*(X3P.),"% (",X3P,"/",X3PA,")")
+          ) %>% gather('level_abb','perc_value',-Year,-Player) %>% left_join(data.frame(level = c('3-Point','Free Throw','Rim (0-3 feet)','Floater (3-10 feet)','10-16 feet','16+ feet')) %>% cbind.data.frame(level_abb = c('X3P.','FT.','X0.3','X3.10','X10.16','X16.3')),join_by(level_abb)) %>% filter(!is.na(Player))
+          tp_df_4 = tp_df_4 %>% filter(FGA > min(c(2.5*(tp_df_4$gpl[which(!is.na(tp_df_4$Player))]),tp_df_4$FGA[which(!is.na(tp_df_4$Player))]))) %>% 
+            select(matches("Year|Player|G|Team|X3PAdd|FTAdd|eff")) %>% 
+            gather("category","value",-Year,-Player,-Team,-Year_dp,-Player_dp,-G) %>% mutate(group = ifelse(grepl("eff|2PA",category),"2-Pointers",ifelse(grepl("FT",category),"Free Throws","3-Pointers"))) %>% 
+            mutate(value = ifelse(group == "3-Pointers",3*value,ifelse(group == "2-Pointers",2*value,value))) %>% inner_join(read.csv("Complete Data/scoring_levels.csv")[,-1],by = join_by(category)) %>% select(-category) %>%
+            left_join(perc_df %>% select(-level_abb), by = join_by(level,Year,Player))
+          tp_df_4$level = factor(tp_df_4$level,levels = read.csv("Complete Data/scoring_levels.csv")[,3])
+          tp_df_4$group = factor(tp_df_4$group,levels = c("Free Throws","2-Pointers","3-Pointers"))
+          tp_df_4 = tp_df_4 %>% inner_join(tp_df_4 %>% filter((Player == player_input_1 & Year == year_input_1) | (Player == player_input_2 & Year == year_input_2)) %>% 
+                                             group_by(level) %>% summarise(.groups = "drop",max_value = max(value/G)),by = join_by(level)) %>% mutate(plot_color = paste(Year_dp,Player_dp))
+          
+          p4 = tp_df_4 %>% filter(is.na(Player)) %>% 
+            ggplot(aes(x = level, y = value/G)) + geom_jitter(alpha = ifelse(same_year,I(0.1),I(0.05))) + geom_hline(yintercept = 0) +
+            facet_grid(. ~ group, scales = 'free_x', space = 'free_x') + theme_bw() +
+            scale_y_continuous(name = "Scoring Efficiency",
+                               labels = function(x) ifelse(x == 0, "League Average", x),
+                               expand = expansion(mult = c(0.1, 0.1))) + scale_x_discrete("") +
+            geom_segment(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))) %>%
+                mutate(y_adj = ifelse(value/G == max_value,
+                                      (value/G) + 0.45,
+                                      (value/G) - 0.45)),
+              aes(color = plot_color, x = level, xend = level, y = value/G, yend = y_adj),
+              inherit.aes = FALSE, show.legend = FALSE
+            ) + 
+            geom_label(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))) %>%
+                mutate(y_adj = ifelse(value/G == max_value,
+                                      (value/G) + 0.45,
+                                      (value/G) - 0.45)),
+              aes(color = plot_color, x = level, y = y_adj, label = paste0(Year_dp," ",Player_dp,"\n",perc_value)),
+              size = 3, show.legend = FALSE
+            ) +
+            geom_point(
+              data = tp_df_4 %>%
+                filter((!grepl("NA",perc_value)) & ((Player == player_input_1 & Year == year_input_1) |
+                                                      (Player == player_input_2 & Year == year_input_2))),
+              aes(color = plot_color)
+            ) + scale_color_manual(values = setNames(c(top_color, "grey35"), c(tp_df_4$plot_color[which(tp_df_4$Player==player_input_1&tp_df_4$Year==year_input_1)][1], tp_df_4$plot_color[which(tp_df_4$Player==player_input_2&tp_df_4$Year==year_input_2)][1]))) +
+            theme(axis.text.x = element_text(size = 8))
+        }
         
         # Combine plots
         theme_set(theme_minimal(base_size = 10))
-        (p1 + p4 + p2 + p3) + plot_layout(guides = "collect") &
-          theme(legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5))
+        
+        if (!is.null(screen_width) && screen_width < 768) {
+          # Mobile layout: stack all plots vertically
+          (p1 / p4 / p2 / p3) + plot_layout(guides = "collect") &
+            theme(legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5))
+        } else {
+          # Desktop layout: 2x2 grid
+          (p1 + p4 + p2 + p3) + plot_layout(guides = "collect") &
+            theme(legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5))
+        }
+        # (p1 + p4 + p2 + p3) + plot_layout(guides = "collect") &
+        #   theme(legend.position = "none", axis.text.y = element_text(angle = 90, hjust = 0.5))
     })
+  },height = function() {
+    screen_width = session$clientData$output_sc_comparison_plots_width
+    if (!is.null(screen_width) && screen_width < 768) {
+      1600  # 2x taller for mobile (4 plots stacked)
+    } else {
+      800   # Normal height for desktop
+    }
   })
-  
 }
 
 # Run the application
