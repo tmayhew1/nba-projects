@@ -3,5 +3,6 @@
 "2","FTAdd","Free Throw"
 "3","X0.3eff","Rim (0-3 feet)"
 "4","X3.10eff","Floater (3-10 feet)"
-"5","X10.16eff","Midrange (10-16 feet)"
-"6","X16.3eff","Long Midrange (16+ feet)"
+"5","X10.16eff","10-16 feet"
+"6","X16.3eff","16+ feet"
+"7","X2PAdd","2-Point"
