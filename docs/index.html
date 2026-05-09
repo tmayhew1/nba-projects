@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trey's NBA Stats Stuff &mdash; Documentation</title>
+  <meta name="description" content="A comprehensive companion to Trey's NBA Stats Stuff: the Value Added framework, methodology, and a tab-by-tab guide to drawing analytical conclusions from the app." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}], throwOnError: false});"></script>
+
+  <style>
+    :root {
+      --bg: #fbfaf7;
+      --paper: #ffffff;
+      --ink: #1a1d24;
+      --ink-soft: #3a3f4b;
+      --muted: #6c7180;
+      --rule: #e7e3da;
+      --rule-soft: #efece5;
+      --orange: #c8501a;
+      --orange-soft: #f6e6db;
+      --orange-deep: #8a3712;
+      --navy: #102542;
+      --navy-soft: #e7ebf2;
+      --green: #2f7a4d;
+      --red: #b03a2e;
+      --code-bg: #faf6ee;
+      --shadow: 0 1px 2px rgba(16, 37, 66, 0.04), 0 8px 24px rgba(16, 37, 66, 0.05);
+      --maxw: 1180px;
+      --readw: 720px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Source Serif 4', Charter, 'Iowan Old Style', Georgia, serif;
+      font-size: 17.5px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    h1, h2, h3, h4, h5, h6, .sans {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+      letter-spacing: -0.011em;
+      color: var(--navy);
+    }
+    h1 { font-weight: 800; font-size: 2.4rem; line-height: 1.15; margin: 0 0 0.6rem; }
+    h2 { font-weight: 700; font-size: 1.6rem; line-height: 1.25; margin: 3.2rem 0 1rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    h3 { font-weight: 700; font-size: 1.2rem; margin: 2.2rem 0 0.75rem; }
+    h4 { font-weight: 600; font-size: 1.02rem; margin: 1.4rem 0 0.5rem; color: var(--ink); letter-spacing: 0; }
+    p { margin: 0 0 1rem; }
+    a { color: var(--orange-deep); text-decoration: none; border-bottom: 1px solid rgba(138, 55, 18, 0.25); transition: border-color .15s; }
+    a:hover { border-bottom-color: var(--orange); }
+    code, kbd, pre, .mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; border: 1px solid var(--rule-soft); }
+    pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.1rem; overflow-x: auto; line-height: 1.55; }
+    pre code { background: transparent; padding: 0; border: 0; }
+
+    /* ---------- Layout ---------- */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(251, 250, 247, 0.92);
+      backdrop-filter: saturate(140%) blur(10px);
+      -webkit-backdrop-filter: saturate(140%) blur(10px);
+      border-bottom: 1px solid var(--rule);
+    }
+    .topbar-inner {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .brand {
+      font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.95rem;
+      color: var(--navy); border: none; display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .brand .ball { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #e87b3e, #c8501a 60%, #8a3712); position: relative; }
+    .brand .ball::before, .brand .ball::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.25); transform: rotateY(0);
+    }
+    .brand .ball::after { transform: rotate(60deg); border-color: transparent rgba(0,0,0,0.3); }
+    .brand-tag { color: var(--muted); font-weight: 500; font-family: 'Inter', sans-serif; font-size: 0.85rem; }
+    .topbar nav { margin-left: auto; display: flex; gap: 1.25rem; font-family: 'Inter', sans-serif; font-size: 0.86rem; }
+    .topbar nav a { color: var(--ink-soft); border: none; }
+    .topbar nav a:hover { color: var(--orange-deep); }
+
+    .hero {
+      background:
+        radial-gradient(1100px 380px at 85% -10%, rgba(200,80,26,0.10), transparent 60%),
+        radial-gradient(900px 320px at 0% -20%, rgba(16,37,66,0.07), transparent 60%),
+        var(--bg);
+      border-bottom: 1px solid var(--rule);
+    }
+    .hero-inner {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 4.5rem 1.5rem 3.5rem;
+    }
+    .eyebrow {
+      font-family: 'Inter', sans-serif; font-weight: 600;
+      letter-spacing: 0.14em; font-size: 0.74rem;
+      text-transform: uppercase;
+      color: var(--orange-deep);
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.3rem 0.7rem; border: 1px solid var(--orange-soft); border-radius: 999px;
+      background: #fff8f1;
+    }
+    .hero h1 { margin-top: 1rem; font-size: 3rem; max-width: 26ch; }
+    .hero .lede {
+      font-size: 1.18rem; line-height: 1.55; color: var(--ink-soft);
+      max-width: 64ch; margin-top: 0.6rem;
+    }
+    .hero-meta {
+      margin-top: 1.6rem; display: flex; flex-wrap: wrap; gap: 1.4rem 2rem;
+      font-family: 'Inter', sans-serif; font-size: 0.86rem; color: var(--muted);
+    }
+    .hero-meta strong { color: var(--ink); font-weight: 600; }
+    .hero-cta { margin-top: 1.8rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.65rem 1.05rem; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.92rem;
+      border: 1px solid transparent; transition: all .15s;
+    }
+    .btn-primary { background: var(--orange); color: #fff; border-color: var(--orange); }
+    .btn-primary:hover { background: var(--orange-deep); border-color: var(--orange-deep); }
+    .btn-ghost { background: #fff; color: var(--navy); border-color: var(--rule); }
+    .btn-ghost:hover { border-color: var(--navy); }
+    .btn { border-bottom: none; }
+
+    .layout {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 2rem 1.5rem 6rem;
+      display: grid; grid-template-columns: 240px minmax(0, 1fr);
+      gap: 3rem;
+    }
+    .toc {
+      position: sticky; top: 4.2rem; align-self: start;
+      max-height: calc(100vh - 5rem); overflow-y: auto;
+      padding-right: 0.5rem;
+      font-family: 'Inter', sans-serif; font-size: 0.86rem;
+    }
+    .toc h5 {
+      font-family: 'Inter', sans-serif; font-weight: 700;
+      font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 0.6rem;
+    }
+    .toc ol { list-style: none; padding: 0; margin: 0 0 1.4rem; counter-reset: toc; }
+    .toc ol > li { counter-increment: toc; padding: 0.2rem 0; position: relative; }
+    .toc ol > li > a { color: var(--ink-soft); border: none; display: block; padding-left: 1.7rem; }
+    .toc ol > li > a::before {
+      content: counter(toc, decimal-leading-zero);
+      position: absolute; left: 0; color: var(--muted); font-weight: 500;
+      font-feature-settings: 'tnum';
+    }
+    .toc ol > li > a:hover { color: var(--orange-deep); }
+    .toc ul { list-style: none; padding: 0.2rem 0 0.4rem 1.7rem; margin: 0; }
+    .toc ul li a { color: var(--muted); font-size: 0.82rem; display: block; padding: 0.12rem 0; border: none; }
+    .toc ul li a:hover { color: var(--orange-deep); }
+
+    main { min-width: 0; max-width: var(--readw); }
+    main p, main li { color: var(--ink); }
+
+    .lede-block {
+      font-family: 'Source Serif 4', serif;
+      font-size: 1.08rem; line-height: 1.6;
+      color: var(--ink-soft);
+      border-left: 3px solid var(--orange);
+      padding: 0.2rem 0 0.2rem 1.1rem;
+      margin: 1.4rem 0 1.6rem;
+      font-style: italic;
+    }
+
+    /* ---------- Cards & callouts ---------- */
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 1.2rem 1.3rem;
+      margin: 1.2rem 0;
+      box-shadow: var(--shadow);
+    }
+    .callout {
+      border-left: 4px solid var(--navy);
+      background: var(--navy-soft);
+      padding: 0.9rem 1.1rem;
+      border-radius: 6px;
+      margin: 1.2rem 0;
+      font-size: 0.97rem;
+    }
+    .callout.orange { border-left-color: var(--orange); background: var(--orange-soft); }
+    .callout.green { border-left-color: var(--green); background: #e8f4ec; }
+    .callout .label {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.72rem;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--navy); display: block; margin-bottom: 0.35rem;
+    }
+    .callout.orange .label { color: var(--orange-deep); }
+    .callout.green .label { color: var(--green); }
+
+    .pill {
+      display: inline-block; padding: 0.12rem 0.55rem; border-radius: 999px;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.74rem;
+      background: var(--orange-soft); color: var(--orange-deep);
+      letter-spacing: 0.02em;
+    }
+    .pill.navy { background: var(--navy-soft); color: var(--navy); }
+    .pill.green { background: #e8f4ec; color: var(--green); }
+    .pill.red { background: #f7e6e3; color: var(--red); }
+
+    /* ---------- Tables ---------- */
+    .tbl-wrap { overflow-x: auto; margin: 1.2rem 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'Inter', sans-serif; font-size: 0.88rem;
+    }
+    th, td { text-align: left; padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+    th { font-weight: 600; background: #faf7f1; color: var(--navy); border-bottom: 1px solid var(--rule); }
+    tr:last-child td { border-bottom: none; }
+    td code { font-size: 0.86em; }
+
+    /* ---------- Tab cards (the 6 navbar tabs) ---------- */
+    .tab-section {
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 1.5rem 1.6rem 0.6rem;
+      margin: 1.6rem 0 2.4rem;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .tab-section::before {
+      content: ''; position: absolute; top: 0; left: 1.6rem; right: 1.6rem;
+      height: 3px; background: linear-gradient(90deg, var(--orange) 0%, var(--orange) 30%, var(--navy) 30%, var(--navy) 100%);
+      border-radius: 0 0 3px 3px;
+    }
+    .tab-section h3 { margin-top: 0.4rem; font-size: 1.35rem; }
+    .tab-section .tab-num {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.74rem;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--orange-deep);
+    }
+    .tab-section h4 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--navy); margin-top: 1.4rem; margin-bottom: 0.5rem; }
+    .tab-section h4:first-of-type { margin-top: 0.8rem; }
+    .tab-section ul { padding-left: 1.2rem; margin: 0.4rem 0 1rem; }
+    .tab-section li { margin: 0.25rem 0; }
+
+    /* ---------- Definition list ---------- */
+    dl.formula-list { margin: 1rem 0; }
+    dl.formula-list dt {
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 0.95rem;
+      color: var(--navy); margin-top: 1rem;
+    }
+    dl.formula-list dd { margin: 0.3rem 0 0.7rem; color: var(--ink-soft); font-size: 0.97rem; }
+
+    /* ---------- Quote of the value-added bar example ---------- */
+    .stat-bars {
+      margin: 1rem 0 1.4rem;
+      font-family: 'Inter', sans-serif; font-size: 0.85rem;
+    }
+    .stat-bars .row { display: grid; grid-template-columns: 11rem 1fr 4rem; align-items: center; gap: 0.6rem; padding: 0.18rem 0; }
+    .stat-bars .lab { color: var(--ink-soft); }
+    .stat-bars .bar-track { position: relative; height: 14px; background: linear-gradient(90deg, transparent calc(50% - 0.5px), var(--rule) calc(50% - 0.5px), var(--rule) calc(50% + 0.5px), transparent calc(50% + 0.5px)); border-radius: 2px; }
+    .stat-bars .bar { position: absolute; top: 1px; bottom: 1px; }
+    .stat-bars .bar.pos { left: 50%; background: var(--green); border-radius: 0 2px 2px 0; }
+    .stat-bars .bar.neg { right: 50%; background: var(--red); border-radius: 2px 0 0 2px; }
+    .stat-bars .val { text-align: right; font-feature-settings: 'tnum'; color: var(--ink-soft); }
+
+    /* ---------- Footer ---------- */
+    footer {
+      border-top: 1px solid var(--rule);
+      background: #f5f1e8;
+      padding: 2.4rem 1.5rem 3.4rem;
+    }
+    .footer-inner {
+      max-width: var(--maxw); margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem;
+      font-family: 'Inter', sans-serif; font-size: 0.88rem; color: var(--ink-soft);
+    }
+    .footer-inner h6 { font-family: 'Inter', sans-serif; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy); margin: 0 0 0.7rem; }
+    .footer-inner ul { list-style: none; padding: 0; margin: 0; }
+    .footer-inner li { padding: 0.18rem 0; }
+    .footer-inner a { color: var(--ink-soft); }
+
+    .anchor-link { color: var(--muted); border: none; margin-left: 0.4rem; opacity: 0; transition: opacity .15s; font-weight: 400; }
+    h2:hover .anchor-link, h3:hover .anchor-link, h4:hover .anchor-link { opacity: 1; }
+
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; gap: 1rem; padding: 1.5rem 1.2rem 4rem; }
+      .toc { position: static; max-height: none; padding-right: 0; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; margin-bottom: 1rem; }
+      .hero h1 { font-size: 2.1rem; }
+      .hero-inner { padding: 3rem 1.2rem 2.4rem; }
+      .footer-inner { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top"><span class="ball" aria-hidden="true"></span> Trey&rsquo;s NBA Stats Stuff <span class="brand-tag">&middot; Documentation</span></a>
+    <nav>
+      <a href="#value-added">Value Added</a>
+      <a href="#methodology">Methodology</a>
+      <a href="#tabs">Tabs</a>
+      <a href="#glossary">Glossary</a>
+      <a href="https://tmayhew1.shinyapps.io/nba-projects/" target="_blank" rel="noopener">Open app &rarr;</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-inner">
+    <span class="eyebrow"><span aria-hidden="true">&#9679;</span> An NBA analytics companion</span>
+    <h1>A points-equivalent framework for measuring NBA player value.</h1>
+    <p class="lede">
+      <em>Trey&rsquo;s NBA Stats Stuff</em> is an interactive R Shiny app that re-expresses every box-score contribution &mdash; scoring volume, shooting efficiency, playmaking, defensive event creation, ball security, and rebounding &mdash; in a single common unit: <strong>points added relative to a league-average minute</strong>. This document explains the framework, defines every component, and gives a tab-by-tab guide to the analytical conclusions the app supports.
+    </p>
+    <div class="hero-meta">
+      <span><strong>App</strong> tmayhew1.shinyapps.io/nba-projects</span>
+      <span><strong>Coverage</strong> 1949&ndash;50 to present</span>
+      <span><strong>Data source</strong> Basketball-Reference.com</span>
+      <span><strong>Refresh</strong> daily, on first invocation</span>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://tmayhew1.shinyapps.io/nba-projects/" target="_blank" rel="noopener">Launch the app &rarr;</a>
+      <a class="btn btn-ghost" href="#overview">Read the docs</a>
+    </div>
+  </div>
+</section>
+
+<div class="layout">
+
+  <aside class="toc" aria-label="Table of contents">
+    <h5>On this page</h5>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#value-added">The Value Added concept</a>
+        <ul>
+          <li><a href="#why-va">Why a single unit</a></li>
+          <li><a href="#three-claims">Three claims</a></li>
+        </ul>
+      </li>
+      <li><a href="#methodology">Methodology</a>
+        <ul>
+          <li><a href="#baselines">League baselines</a></li>
+          <li><a href="#components">Component formulas</a></li>
+          <li><a href="#aggregation">Aggregation</a></li>
+          <li><a href="#eligibility">Eligibility &amp; edge cases</a></li>
+        </ul>
+      </li>
+      <li><a href="#tabs">The six tabs</a>
+        <ul>
+          <li><a href="#tab-pc">Player Comparison</a></li>
+          <li><a href="#tab-ff">Four Factors Comparison</a></li>
+          <li><a href="#tab-lb">Leaderboard</a></li>
+          <li><a href="#tab-gl">Game Lookup</a></li>
+          <li><a href="#tab-dl">Date Lookup</a></li>
+          <li><a href="#tab-cc">Career Comparison</a></li>
+        </ul>
+      </li>
+      <li><a href="#worked-example">A worked example</a></li>
+      <li><a href="#glossary">Variable glossary</a></li>
+      <li><a href="#data">Data &amp; pipeline</a></li>
+      <li><a href="#limitations">Limitations</a></li>
+      <li><a href="#future">Extensions &amp; future work</a></li>
+      <li><a href="#credits">Credits</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+  <!-- ============================================================= -->
+  <!-- 1. OVERVIEW -->
+  <!-- ============================================================= -->
+  <h2 id="overview">1. Overview <a class="anchor-link" href="#overview">#</a></h2>
+
+  <p class="lede-block">
+    The application addresses one question: <em>how much, in points, did this player contribute that an average player at the same minutes load would not have?</em> It then unpacks that headline number across every dimension of the box score, surfaces the result through six interactive tabs, and provides peer-relative context at the league, season, career, and single-game levels.
+  </p>
+
+  <p>The app is a single-file R Shiny application backed by a daily Basketball-Reference scrape. Player totals back to the 1949&ndash;50 season are normalized against per-minute league averages to produce a vector of <em>points added</em> components. Those components are then rolled up into a single <code>valueAdd</code> figure or visualized individually so the user can see <em>where</em> a player&rsquo;s contribution comes from, not just <em>how much</em> there is.</p>
+
+  <p>This documentation is organized as follows. Section 2 motivates the Value Added framework. Section 3 specifies the math. Section 4 describes each tab &mdash; what to put in, what comes out, and what conclusions are licensed. Sections 5 through 9 cover a worked example, the variable glossary, the data pipeline, methodological limitations, and possible extensions.</p>
+
+  <div class="callout">
+    <span class="label">Audience</span>
+    The intended reader is a basketball-literate analyst who is comfortable thinking about per-minute rates and league-relative baselines but who has not seen this specific framework before. Where the math becomes opinionated &mdash; e.g., the assist-credit weighting or the rebound-attribution scheme &mdash; the choice is flagged explicitly so the user can decide whether to accept or critique it.
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- 2. THE VALUE ADDED CONCEPT -->
+  <!-- ============================================================= -->
+  <h2 id="value-added">2. The Value Added concept <a class="anchor-link" href="#value-added">#</a></h2>
+
+  <h3 id="why-va">2.1 Why a single unit?</h3>
+
+  <p>Box-score statistics are not commensurable. An assist is not a rebound, a steal is not a free throw, and a turnover is not a missed three. Comparing two players requires either (a) collapsing everything into an opaque single number (PER, BPM, Win Shares) or (b) presenting an array of stats and asking the reader to weight them. The first sacrifices interpretability; the second sacrifices decisiveness.</p>
+
+  <p>The Value Added framework takes a third path: it converts every box-score event into the same unit &mdash; <strong>points scored above a league-average player at the same minutes</strong> &mdash; using only league-wide baselines that the data themselves provide. The result is additive (the components sum to the headline), interpretable (every term has units of points), and decomposable (the user can always ask which component is doing the work).</p>
+
+  <h3 id="three-claims">2.2 Three claims that organize the framework</h3>
+
+  <ol>
+    <li><strong>Every contribution can be expressed in points.</strong> Scoring is already in points. Assists become points by way of expected made baskets they create. Steals and blocks become points via the value of the possession denied. Rebounds become points by way of the possession secured (or surrendered) and that possession&rsquo;s expected value. Turnovers are negative points by the same possession logic.</li>
+    <li><strong>The right baseline is &ldquo;the league&rsquo;s average minute, scaled to this player&rsquo;s minutes.&rdquo;</strong> Comparing a player to the league average <em>per game</em> double-counts minutes (a 36-minute starter is not 1.0&times; a 24-minute reserve). Comparing to a positional baseline imports a structural assumption the data do not require. The app uses per-minute league averages, scaled by the player&rsquo;s actual minutes, so the comparison is &ldquo;you played <code>MP</code> minutes; what would the league have produced in those minutes?&rdquo;</li>
+    <li><strong>Volume and efficiency are separable, and both are real.</strong> A player who scores a lot at average efficiency adds value (they free other players from the burden). A player who scores at high efficiency on low volume also adds value (every shot is positive expectancy). The framework gives them separate components &mdash; <code>vaPTSv</code> for volume and <code>PTSAdd</code> for efficiency &mdash; rather than netting them out.</li>
+  </ol>
+
+  <div class="callout orange">
+    <span class="label">The headline equation</span>
+    <p style="margin:0">For a player&rsquo;s season, the framework computes:</p>
+    $$ \texttt{valueAdd} = \underbrace{\texttt{vaPTSv}}_{\text{scoring volume}} + \underbrace{\texttt{PTSAdd}}_{\text{scoring efficiency}} + \underbrace{\texttt{vaAST}}_{\text{playmaking}} + \underbrace{\texttt{vaSTL} + \texttt{vaBLK}}_{\text{defensive events}} + \underbrace{\texttt{vaTOV}}_{\text{ball security}} + \underbrace{\texttt{vaDRB} + \texttt{vaORB}}_{\text{rebounding}} $$
+    <p style="margin:0.6rem 0 0">Every term is in points. Positive means above league average; negative means below.</p>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- 3. METHODOLOGY -->
+  <!-- ============================================================= -->
+  <h2 id="methodology">3. Methodology <a class="anchor-link" href="#methodology">#</a></h2>
+
+  <p>This section specifies the formulas. Each component is derived per season; per-game versions are obtained by dividing by games played (<code>G</code>). The implementation lives in <code>totals_collect.R</code> (season-level aggregates) and is recomputed inline in <code>app.R</code> for live game-log views.</p>
+
+  <h3 id="baselines">3.1 League baselines</h3>
+
+  <p>For every season $y$ the app computes the following league-wide quantities, stored in <code>Complete Data/avgsSummary.csv</code>:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Symbol</th><th>Definition</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td><code>laPTSperM</code></td><td>median of <code>PTS / MP</code> across qualifying players</td><td>the typical points produced per minute</td></tr>
+        <tr><td><code>laASTperM</code>, <code>laSTLperM</code>, <code>laBLKperM</code>, <code>laTOVperM</code>, <code>laDRBperM</code>, <code>laORBperM</code></td><td>median of the corresponding rate</td><td>per-minute league baselines for each event type</td></tr>
+        <tr><td><code>la2P.</code>, <code>la3P.</code>, <code>laFT.</code>, <code>laFG.</code></td><td>league sums &mdash; e.g. $\sum X3P / \sum X3PA$</td><td>league shooting accuracy at each level</td></tr>
+        <tr><td><code>laPTSperMake</code></td><td>$(3 \cdot X3P + 2 \cdot X2P) / (X3P + X2P)$</td><td>average points per made field goal</td></tr>
+        <tr><td><code>laPTSperPoss</code></td><td>$\dfrac{\text{PTS}}{X2PA + X3PA + \text{TOV} + \text{FTA}/2.1}$</td><td>league points per possession; for pre-1973 seasons (when TOV is missing) it is imputed from a linear regression on <code>laPTSperM</code> and <code>laTRBperM</code>.</td></tr>
+        <tr><td><code>laORBrate</code>, <code>laDRBrate</code></td><td>$\text{ORB}/\text{TRB}$, $\text{DRB}/\text{TRB}$</td><td>fraction of all rebounds that are offensive vs. defensive</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The use of <em>medians</em> for per-minute rates (rather than means) is deliberate: it suppresses the influence of outlier high-volume seasons and gives a baseline closer to the typical NBA player&rsquo;s footprint per minute on the floor.</p>
+
+  <h3 id="components">3.2 Component formulas</h3>
+
+  <p>For a player-season with statistics $\{\text{PTS, AST, STL, BLK, TOV, DRB, ORB, MP}\}$ and the league baselines above, the components are:</p>
+
+  <dl class="formula-list">
+    <dt>Scoring &mdash; volume (<code>vaPTSv</code>)</dt>
+    <dd>
+      $$\texttt{vaPTSv} = \left( \tfrac{\text{PTS}}{\text{MP}} - \texttt{laPTSperM} \right) \cdot \text{MP}$$
+      How many <em>extra</em> points the player put on the board per minute, scaled by minutes played. A high-usage scorer sits well above zero; a low-usage role player sits near or slightly below zero.
+    </dd>
+
+    <dt>Scoring &mdash; efficiency (<code>PTSAdd</code>)</dt>
+    <dd>
+      Computed from three shot-type components &mdash; each is points added by shooting <em>better</em> than league average on the player&rsquo;s own attempted volume:
+      $$ \texttt{X2PAdd} = (X2P. - \texttt{la2P.}) \cdot X2PA $$
+      $$ \texttt{X3PAdd} = (X3P. - \texttt{la3P.}) \cdot X3PA $$
+      $$ \texttt{FTAdd}  = (FT.  - \texttt{laFT.})  \cdot FTA $$
+      $$ \texttt{PTSAdd} = 2 \cdot \texttt{X2PAdd} + 3 \cdot \texttt{X3PAdd} + \texttt{FTAdd} $$
+      Each <code>*Add</code> is the number of <em>extra makes</em> a player generated above what a league-average shooter would have produced on the same attempt total. <code>PTSAdd</code> converts those extra makes back into points.
+    </dd>
+
+    <dt>Playmaking (<code>vaAST</code>)</dt>
+    <dd>
+      $$\texttt{vaAST} = \left( \tfrac{\text{AST}}{\text{MP}} - \texttt{laASTperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperMake} \cdot (1 - \texttt{laFG.})$$
+      An assist is credited the value of the made field goal it created (<code>laPTSperMake</code>), but only the <em>marginal</em> portion above what would have happened anyway: a fraction $(1 - \texttt{laFG.})$ representing baskets that would not have been made without the pass. This is an opinionated weighting and is documented as such.
+    </dd>
+
+    <dt>Defensive events (<code>vaSTL</code>, <code>vaBLK</code>)</dt>
+    <dd>
+      $$\texttt{vaSTL} = \left( \tfrac{\text{STL}}{\text{MP}} - \texttt{laSTLperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperPoss}$$
+      $$\texttt{vaBLK} = \left( \tfrac{\text{BLK}}{\text{MP}} - \texttt{laBLKperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperPoss} \cdot \texttt{laDRBrate}$$
+      A steal terminates a possession outright, so it is credited a full <code>laPTSperPoss</code>. A block, by contrast, only produces a stop if the defense secures the rebound &mdash; about <code>laDRBrate</code> of the time &mdash; so its credit is discounted accordingly.
+    </dd>
+
+    <dt>Ball security (<code>vaTOV</code>)</dt>
+    <dd>
+      $$\texttt{vaTOV} = -1 \cdot \left( \tfrac{\text{TOV}}{\text{MP}} - \texttt{laTOVperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperPoss}$$
+      Sign-flipped so that <em>fewer</em> turnovers than league average contributes a positive number. The penalty per excess turnover is one expected possession.
+    </dd>
+
+    <dt>Rebounding (<code>vaDRB</code>, <code>vaORB</code>)</dt>
+    <dd>
+      $$\texttt{vaDRB} = \left( \tfrac{\text{DRB}}{\text{MP}} - \texttt{laDRBperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperPoss} \cdot \texttt{laORBrate}$$
+      $$\texttt{vaORB} = \left( \tfrac{\text{ORB}}{\text{MP}} - \texttt{laORBperM} \right) \cdot \text{MP} \cdot \texttt{laPTSperPoss} \cdot \texttt{laDRBrate}$$
+      Each rebound is credited a possession, but discounted by the probability the team would <em>not</em> have secured the rebound otherwise. A defensive rebound is the more common outcome (~70&ndash;72% league-wide), so its <em>marginal</em> value is scaled by the smaller offensive-rebound rate; an offensive rebound is rarer and more valuable, scaled by the larger defensive-rebound rate.
+    </dd>
+  </dl>
+
+  <h3 id="aggregation">3.3 Aggregation</h3>
+
+  <p>The eight component terms add to the headline number:</p>
+
+  $$ \texttt{valueAdd} = \texttt{vaPTSv} + \texttt{PTSAdd} + \texttt{vaAST} + \texttt{vaSTL} + \texttt{vaBLK} + \texttt{vaTOV} + \texttt{vaDRB} + \texttt{vaORB} $$
+
+  <p>Per-game versions divide each term by <code>G</code>. Tab&nbsp;8&rsquo;s &ldquo;Value Breakdown&rdquo; renders the eight components stacked next to <code>valueAdd</code> itself, giving the reader an immediate visual decomposition of <em>where</em> a player&rsquo;s value comes from.</p>
+
+  <div class="callout">
+    <span class="label">Three formula variants and graceful fallback</span>
+    The codebase defines three nested variants &mdash; <code>valueAdd_1</code>, <code>valueAdd_2</code>, <code>valueAdd_3</code> &mdash; and selects the most data-rich one available with <code>coalesce()</code>. Variant 1 is the full formula. Variant 2 omits the turnover term (used for seasons 1974&ndash;77, when STL/BLK are present but TOV measurement was inconsistent). Variant 3 omits turnovers, steals, and blocks and uses estimated rebound splits (used for 1952&ndash;73, before STL/BLK were tracked). This staged fallback is what allows the framework to extend back to 1949&ndash;50 without falsely punishing players for unrecorded events.
+  </div>
+
+  <h3 id="eligibility">3.4 Eligibility, edge cases, and the games-played floor</h3>
+
+  <ul>
+    <li><strong>Games-played floor (<code>gpl</code>).</strong> For per-game leaderboards, the app applies a games-played floor of $0.75 \cdot \max(G)$ in the season &mdash; roughly equivalent to the NBA&rsquo;s 58-game qualification rule for 82-game seasons. For playoff comparisons (Tab&nbsp;7.5), the floor relaxes to $0.5 \cdot \max(G)$ when the maximum is below 29, so that conference finalists and finalists are not the only eligible players.</li>
+    <li><strong>Multi-team seasons.</strong> Players traded mid-season have a <code>5TM</code>/<code>4TM</code>/<code>3TM</code>/<code>2TM</code> aggregate row that consolidates their statistics. The app uses the aggregate row for full-season computations and surfaces the constituent rows where relevant (e.g., the Career Comparison table).</li>
+    <li><strong>Pre-1973 turnovers and pre-1974 steals/blocks.</strong> See the fallback variants above. The Four Factors view is gated to seasons after 1979&ndash;80, when the NBA introduced the three-point line, because pre-1980 efficiency profiles are structurally non-comparable.</li>
+    <li><strong>Single-game value added.</strong> When the app ingests a live box score (Tabs&nbsp;4&ndash;6, Game Lookup, Date Lookup), it joins the <em>current season&rsquo;s</em> league baselines onto every game row. Game-level value added therefore answers &ldquo;in this game, what did this player produce above an average minute of <em>this</em> season?&rdquo; rather than baking in any historical context.</li>
+  </ul>
+
+  <!-- ============================================================= -->
+  <!-- 4. THE TABS -->
+  <!-- ============================================================= -->
+  <h2 id="tabs">4. The six tabs <a class="anchor-link" href="#tabs">#</a></h2>
+
+  <p>The app exposes six top-level tabs. The order below matches the navbar order. Each section gives the inputs, the outputs, and a list of conclusions a user can credibly draw from the view &mdash; together with notes on conclusions the view does <em>not</em> license.</p>
+
+  <!-- ----- Tab: Player Comparison ----- -->
+  <section class="tab-section" id="tab-pc">
+    <span class="tab-num">Tab 01 &middot; Active comparison</span>
+    <h3>Player Comparison</h3>
+    <p>An active, head-to-head view comparing two players over arbitrary time windows. Game logs are scraped live from Basketball-Reference, the Value Added components are recomputed per game, and the user can roll up the result into a rolling-average trend, a windowed summary, or a single-game decomposition.</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Player 1 and Player 2 (free-text search; matches against the season totals roster)</li>
+      <li>Independent date ranges for each player</li>
+      <li>Statistic to track (defaults to <strong>Value Added</strong>; any column from <code>menu_options.csv</code> is selectable)</li>
+      <li>Rolling-average window length (in games)</li>
+      <li>Per-game vs. total toggle</li>
+    </ul>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li><strong>Rolling-average line plot</strong> &mdash; the chosen stat over each player&rsquo;s game sequence, with team-color lines and date labels at the endpoints and at the peak game</li>
+      <li><strong>Top-3 single-game performances</strong> table for each player, with <code>VA</code> decomposed into PTS, TRB, AST, BLK, STL, X3PAdd, X2PAdd+FTAdd</li>
+      <li><strong>Window summary tables</strong> &mdash; G, MP, PTS, TRB, AST, 3P%, 3PA, FG%, STK aggregated over the chosen range and over the rolling-window tail</li>
+      <li><strong>Single-game value-added breakdown</strong> &mdash; a horizontal diverging bar chart for any selected game, decomposing that game&rsquo;s <code>valueAdd</code> into all ten point-equivalent components (Scoring Volume, 3P/2P/FT Efficiency, Assists, Steals, Blocks, Turnovers, DRB, ORB)</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Form vs. baseline.</strong> Whether a player is currently performing above or below their season-long norm, on any chosen metric, with the rolling window setting the bandwidth.</li>
+      <li><strong>Head-to-head trajectory.</strong> Which of two players is trending up, which is trending down, and where their lines cross during the window.</li>
+      <li><strong>Peak driver.</strong> For any star performance, which Value Added component carried the night &mdash; whether a 35-point game was driven by efficiency (positive 3P/2P/FT Add) or by raw volume (positive <code>vaPTSv</code> on average shooting), and whether turnovers or rebounds shaved off value.</li>
+      <li><strong>Comparable role read.</strong> For two players within similar minutes, the Window Summary makes role differences (creator vs. finisher; primary vs. secondary playmaker) visible across multiple stat lines simultaneously.</li>
+    </ul>
+
+    <h4>Conclusions this view does <em>not</em> license</h4>
+    <ul>
+      <li>Anything about defensive impact <em>off-ball</em> &mdash; the box-score events captured (STL, BLK) are a small fraction of true defensive value. A player&rsquo;s on-ball defense, screen navigation, and rotational discipline are invisible here.</li>
+      <li>Lineup or matchup conditional inferences &mdash; the data is player-aggregated; teammate context is not.</li>
+    </ul>
+  </section>
+
+  <!-- ----- Tab: Four Factors ----- -->
+  <section class="tab-section" id="tab-ff">
+    <span class="tab-num">Tab 02 &middot; The flagship comparison</span>
+    <h3>Four Factors Comparison</h3>
+    <p>The app&rsquo;s most analytically dense view. Two player-seasons are placed inside the entire league&rsquo;s scatter plot of qualifying peers, on four orthogonal axes that together describe almost everything a player does on a basketball court. Every dot is a real season; the highlighted player-seasons are labeled and colored by their team&rsquo;s primary hex.</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Player 1 and Year 1</li>
+      <li>Player 2 and Year 2 (the two seasons can be from the same year for direct head-to-head, or from different eras for cross-temporal comparison)</li>
+    </ul>
+
+    <h4>The four factors</h4>
+    <ol>
+      <li><strong>Scoring efficiency vs. volume.</strong> $x = \texttt{vaPTSv}/G$, $y = \texttt{PTSAdd}/G$. Upper-right is &ldquo;high-volume <em>and</em> efficient&rdquo;: the rare territory where superstars live.</li>
+      <li><strong>Playmaking vs. ball security.</strong> $x = \texttt{vaTOV}/G$ (sign-flipped so right = better), $y = \texttt{vaAST}/G$. Distinguishes pure passers, low-mistake handlers, and high-assist/high-turnover engines.</li>
+      <li><strong>Defensive events vs. rebounding.</strong> $x = (\texttt{vaORB} + \texttt{vaDRB})/G$, $y = (\texttt{vaSTL} + \texttt{vaBLK})/G$. Locates rim protectors, stocks-heavy guards, and glass-only bigs.</li>
+      <li><strong>Shot diet split.</strong> $x = (\texttt{PTSAdd} - 3 \cdot \texttt{X3PAdd})/G$ (interior + foul-line value), $y = 3 \cdot \texttt{X3PAdd}/G$ (perimeter value). Reveals whether a player&rsquo;s scoring edge is paint/foul or perimeter.</li>
+    </ol>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li>Four scatterplots arranged via <code>patchwork</code>, each with a regression line through the league cloud, the two highlighted player-seasons labeled and team-colored, and zero on every axis explicitly relabeled &ldquo;League Average.&rdquo; The player&rsquo;s annotation includes a one-line read of the underlying box-score numbers (PPG, eFG%, APG, TOV/G, etc.) so the geometric position has a numeric anchor.</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Quadrant identity.</strong> Each panel partitions the league cloud into four quadrants whose meanings are stable: e.g., upper-right of panel 1 is &ldquo;high-volume and efficient scorer,&rdquo; upper-left of panel 2 is &ldquo;passes a lot but coughs the ball up.&rdquo; A player&rsquo;s identity emerges as the joint position across all four panels.</li>
+      <li><strong>Star detection.</strong> A true star is far from the regression line on multiple panels at once. A specialist dominates a single panel and sits on the regression line elsewhere.</li>
+      <li><strong>Cross-era comparison.</strong> Because every dot is z-scored against its <em>own</em> season&rsquo;s league cloud, a 1985 season can be compared to a 2025 season meaningfully &mdash; the question is &ldquo;how did each player rank against their contemporaries?&rdquo; not &ldquo;who put up bigger raw numbers?&rdquo;</li>
+      <li><strong>Shot-diet diagnosis.</strong> Panel 4 cleanly separates perimeter-driven scorers (high y, near-zero x) from interior/foul-line scorers (high x, near-zero y) from balanced threats (positive on both). Useful for evaluating fit, role, and projection.</li>
+    </ul>
+
+    <h4>Conclusions this view does <em>not</em> license</h4>
+    <ul>
+      <li>The panels are orthogonal by design but they are <em>not</em> exhaustive: off-ball gravity, screen-setting, and free-throw drawing are not represented.</li>
+      <li>The qualifying-games threshold (<code>gpl</code>) prunes the cloud; star players who missed substantial time will not appear at all.</li>
+    </ul>
+  </section>
+
+  <!-- ----- Tab: Leaderboard ----- -->
+  <section class="tab-section" id="tab-lb">
+    <span class="tab-num">Tab 03 &middot; Season leaders</span>
+    <h3>Leaderboard</h3>
+    <p>A league-wide ranking view. The user picks a season and a statistic and the app returns the top of the leaderboard, optionally compared against a second season&rsquo;s distribution. A neighborhood lookup surfaces the players adjacent to a chosen subject in the standings, and a team lookup returns a team&rsquo;s rotation by minute load.</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Season (regular season or playoffs)</li>
+      <li>Statistic to rank by &mdash; default <strong>Value Added</strong>; any column from <code>menu_options_2.csv</code> is selectable</li>
+      <li>Per-game vs. total toggle</li>
+      <li>Optional second season for distribution comparison</li>
+      <li>Optional player or team for context lookup</li>
+    </ul>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li><strong>Top-10 leaders bar chart</strong> &mdash; horizontal bars colored by team hex.</li>
+      <li><strong>Two-season facet plot</strong> &mdash; the same top-10 view side-by-side for two seasons.</li>
+      <li><strong>Distribution comparison</strong> &mdash; bootstrap-resampled densities of 5-player-mean values for each season, overlaid with a strip showing where the top 10 sit. This answers the &ldquo;was this year deeper or shallower than that one?&rdquo; question.</li>
+      <li><strong>Neighborhood table (<code>lesearch</code>)</strong> &mdash; the five players above and five below the user&rsquo;s chosen subject, with each rate stat tagged &ldquo;+&rdquo; or &ldquo;&minus;&rdquo; relative to league per-minute average and a <code>z_s</code> z-score on per-game value added.</li>
+      <li><strong>Team rotation table (<code>tesearch</code>)</strong> &mdash; the team&rsquo;s top 10 by minutes, each player&rsquo;s per-game value added, and league-wide percentile.</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Who led the league.</strong> Trivially &mdash; on any individual stat or any Value Added component &mdash; the top of the bar chart is the leader.</li>
+      <li><strong>Era depth.</strong> The bootstrap distribution comparison gives a falsifiable answer to &ldquo;was 2017&rsquo;s top-10 stronger than 2024&rsquo;s?&rdquo; The strip shows where the realized leaders sit inside each year&rsquo;s bootstrap density &mdash; far-right outliers indicate deep top-end talent.</li>
+      <li><strong>Neighborhood comps.</strong> The <code>lesearch</code> table is the natural tool for &ldquo;who else had the kind of year Player X had?&rdquo; and exposes the rate-stat profile that placed each comparable on the leaderboard.</li>
+      <li><strong>Team rotation reads.</strong> <code>tesearch</code> shows whether a team relies on a top-heavy two-man rotation or a balanced eight-deep group, in points-equivalent terms.</li>
+    </ul>
+  </section>
+
+  <!-- ----- Tab: Game Lookup ----- -->
+  <section class="tab-section" id="tab-gl">
+    <span class="tab-num">Tab 04 &middot; Single-game by team</span>
+    <h3>Game Lookup</h3>
+    <p>Selects a single regular-season game from a team&rsquo;s schedule and renders its full box score, the per-player Value Added breakdown, and a scatter plot of <code>+/-</code> versus Value Added that visualizes the relationship between on-court margin and individual production.</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Team (mapped to its Basketball-Reference abbreviation)</li>
+      <li>Season</li>
+      <li>Game (chosen from that team&rsquo;s schedule, with opponent label)</li>
+      <li>Player (chosen from the box score for the per-player breakdown)</li>
+    </ul>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li><strong>Sortable box score table</strong> &mdash; every player from both teams with MP, PTS, TRB, AST, BLK, STL, TOV, FG/FGA, 3P/3PA, <code>VA</code> (game-level value added), and <code>+/-</code>, sorted by <code>VA</code>.</li>
+      <li><strong>Single-player Value Added breakdown</strong> &mdash; the same ten-component diverging bar chart as in Tab&nbsp;1, scoped to one player and one game.</li>
+      <li><strong>Plus/minus vs. Value Added scatter</strong> &mdash; every player from the game placed in the (PM, VA) plane, with reference lines at zero on both axes. Selected team in team-color, others in grey.</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Stat-line vs. impact divergence.</strong> The four quadrants of the PM&times;VA plane each tell a story:
+        <ul>
+          <li><em>Upper-right (high VA, positive PM):</em> the player put up a strong stat line and the team won their minutes &mdash; clean positive performance.</li>
+          <li><em>Upper-left (high VA, negative PM):</em> the player produced individually but the team lost their minutes &mdash; suggests the supporting cast struggled or the defense carried.</li>
+          <li><em>Lower-right (low VA, positive PM):</em> the player did not show up in the box score but the team won their minutes &mdash; suggests an off-ball or defensive contribution invisible to the framework, or simply that the player benefited from teammates.</li>
+          <li><em>Lower-left (low VA, negative PM):</em> a struggle on both axes.</li>
+        </ul>
+      </li>
+      <li><strong>Drivers of a single performance.</strong> The breakdown bar chart shows in points-equivalent units exactly which categories produced or destroyed value &mdash; a 28-point night with negative <code>vaTOV</code> and zero <code>PTSAdd</code> is a different game than a 22-point night on +5 efficiency.</li>
+      <li><strong>Best player on the floor.</strong> The VA-sorted box score is a defensible answer to &ldquo;who had the best statistical game&rdquo; that subsumes both volume and efficiency.</li>
+    </ul>
+  </section>
+
+  <!-- ----- Tab: Date Lookup ----- -->
+  <section class="tab-section" id="tab-dl">
+    <span class="tab-num">Tab 05 &middot; Single-game by date</span>
+    <h3>Date Lookup</h3>
+    <p>The complement to Game Lookup. Where Game Lookup walks down a single team&rsquo;s schedule, Date Lookup walks down the league&rsquo;s entire slate for a chosen day &mdash; both regular season and playoffs &mdash; and lets the user drill into any matchup. It also subsumes the &ldquo;yesterday&rsquo;s games&rdquo; functionality from the source-tab structure.</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Date (any day with NBA action, defaulting to recent)</li>
+      <li>Matchup (any game from that day)</li>
+      <li>Period filter (full game, by quarter, by half, by overtime)</li>
+      <li>Player (chosen from the box score for the per-player breakdown)</li>
+    </ul>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li><strong>Day&rsquo;s slate</strong> &mdash; every game played on that date with hyperlinks to box scores.</li>
+      <li><strong>Period-filterable box score</strong> &mdash; full game or any subset, with cleaned-up minute formatting.</li>
+      <li><strong>Top-10 performances on the date</strong> &mdash; a ranking across the entire slate, ordered by Value Added, scattered against <code>+/-</code> with the same axis convention as Tab&nbsp;4.</li>
+      <li><strong>Player breakdown</strong> &mdash; the same ten-component diverging bar chart for any player picked from the slate.</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Best night in the league.</strong> Across every game on the slate, who produced the most value &mdash; a single ranking that crosses team boundaries.</li>
+      <li><strong>Period-specific reads.</strong> A 22-point quarter and a 4-point fourth are different stories. The period filter exposes within-game drift.</li>
+      <li><strong>Slate-wide quadrant scan.</strong> The top-10 PM&times;VA scatter for a single date often makes the &ldquo;empty-stats&rdquo; or &ldquo;invisible-impact&rdquo; players visible at a glance.</li>
+    </ul>
+  </section>
+
+  <!-- ----- Tab: Career Comparison ----- -->
+  <section class="tab-section" id="tab-cc">
+    <span class="tab-num">Tab 06 &middot; Career arc</span>
+    <h3>Career Comparison</h3>
+    <p>A side-by-side career table for two players, with each season ranked league-wide by the chosen metric and color-shaded by rank. Sub-views switch between regular-season careers and playoff careers (the latter relaxes the games-played floor for short series).</p>
+
+    <h4>Inputs</h4>
+    <ul>
+      <li>Player 1 and Player 2</li>
+      <li>Statistic (default <strong>Value Added</strong>)</li>
+      <li>Per-game vs. total toggle</li>
+      <li>Regular season vs. playoffs sub-view</li>
+    </ul>
+
+    <h4>Outputs</h4>
+    <ul>
+      <li><strong>Mirrored career table.</strong> Player 1 columns reversed on the left, Player 2 on the right, blank spacer column in the middle. Each season row shows: Value (Rank), Year &mdash; or Year (G) for playoffs &mdash; Team, PTS/TRB/AST/STK rate stats, and FG%/3P%/FT% shooting splits. The Value cell is shaded by season rank, with darker team-color for top-of-league seasons. Rank carries an ordinal suffix (&ldquo;1st&rdquo;, &ldquo;2nd&rdquo;, &ldquo;3rd&rdquo;, &ldquo;9th&rdquo;).</li>
+    </ul>
+
+    <h4>Conclusions you can draw</h4>
+    <ul>
+      <li><strong>Career shape.</strong> The visual gradient of color saturation across rows immediately communicates whether a career was peak-and-decline, late-blooming, plateau-then-collapse, or sustained-elite.</li>
+      <li><strong>Peak height.</strong> A &ldquo;1st&rdquo; or &ldquo;2nd&rdquo; rank in the Value column is an MVP-caliber season by the framework&rsquo;s lights. Multiple top-5 seasons indicate a sustained All-NBA tier.</li>
+      <li><strong>Longevity vs. peak.</strong> Two players with similar career totals but different shapes (more medium-quality seasons vs. fewer elite seasons) read differently on the table.</li>
+      <li><strong>Playoff differential.</strong> Toggling the playoff sub-view exposes players who outperform their regular-season ranks in the postseason and those who collapse, accounting for short-series sample size via the relaxed floor.</li>
+      <li><strong>Stat-line context for the rank.</strong> The accompanying rate stats and shooting splits guard against framework artifacts &mdash; a high VA rank produced by extreme efficiency at low volume reads differently from one produced by extreme volume at average efficiency.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- 5. WORKED EXAMPLE -->
+  <!-- ============================================================= -->
+  <h2 id="worked-example">5. A worked example <a class="anchor-link" href="#worked-example">#</a></h2>
+
+  <p>To make the framework concrete, consider a stylized stretch big in the modern NBA &mdash; call him Player A &mdash; with the following per-game profile in a season where the league averages are <code>laPTSperM = 0.45</code>, <code>laASTperM = 0.10</code>, <code>laSTLperM = 0.027</code>, <code>laBLKperM = 0.020</code>, <code>laTOVperM = 0.045</code>, <code>laDRBperM = 0.135</code>, <code>laORBperM = 0.040</code>, <code>la3P. = 0.367</code>, <code>la2P. = 0.547</code>, <code>laFT. = 0.785</code>, <code>laFG. = 0.470</code>, <code>laPTSperPoss = 1.13</code>, <code>laPTSperMake = 2.27</code>, <code>laDRBrate = 0.72</code>, <code>laORBrate = 0.28</code>:</p>
+
+  <div class="card">
+    <p style="margin:0 0 0.6rem"><strong>Player A, 70 games, 28.0 MPG</strong> &mdash; 14.5 PTS, 7.0 TRB (5.4 DRB / 1.6 ORB), 1.8 AST, 0.9 STL, 1.7 BLK, 1.2 TOV, on 41.5% from three (5.0 3PA), 56.0% from two (4.4 2PA), 78.0% from FT (2.5 FTA).</p>
+    <p style="margin:0; color: var(--muted); font-size: 0.9rem">Per-season totals: <code>MP = 1960</code>, <code>PTS = 1015</code>, <code>3P = 145.25</code>, <code>3PA = 350</code>, <code>2P = 172.48</code>, <code>2PA = 308</code>, <code>FT = 136.5</code>, <code>FTA = 175</code>.</p>
+  </div>
+
+  <h4>Step 1 &mdash; Volume scoring</h4>
+  <p>$\texttt{vaPTSv} = (1015/1960 - 0.45) \cdot 1960 = (0.518 - 0.45) \cdot 1960 \approx 133.3$ points.</p>
+  <p>The player scored ~133 points more than a league-average minute would have produced over those 1960 minutes.</p>
+
+  <h4>Step 2 &mdash; Shooting efficiency</h4>
+  <p>$\texttt{X3PAdd} = (0.415 - 0.367) \cdot 350 = 16.8$ extra makes &rarr; <strong>50.4 points</strong> ($\times 3$).</p>
+  <p>$\texttt{X2PAdd} = (0.560 - 0.547) \cdot 308 = 4.0$ extra makes &rarr; <strong>8.0 points</strong> ($\times 2$).</p>
+  <p>$\texttt{FTAdd}  = (0.780 - 0.785) \cdot 175 = -0.9$ extra makes &rarr; <strong>&minus;0.9 points</strong>.</p>
+  <p>$\texttt{PTSAdd} \approx 50.4 + 8.0 - 0.9 = 57.5$ points.</p>
+
+  <h4>Step 3 &mdash; The rest of the components</h4>
+  <p>Working through the per-minute formulas with the rates above:</p>
+  <ul>
+    <li>$\texttt{vaAST} = (1.8/28 - 0.10) \cdot 1960 \cdot 2.27 \cdot (1 - 0.470) \approx -41.0$ &mdash; below-average passing for the position, costing ~41 points.</li>
+    <li>$\texttt{vaSTL} = (0.9/28 - 0.027) \cdot 1960 \cdot 1.13 \approx 12.0$ &mdash; modest positive.</li>
+    <li>$\texttt{vaBLK} = (1.7/28 - 0.020) \cdot 1960 \cdot 1.13 \cdot 0.72 \approx 64.0$ &mdash; strong rim protection at 1.7 BPG.</li>
+    <li>$\texttt{vaTOV} = -1 \cdot (1.2/28 - 0.045) \cdot 1960 \cdot 1.13 \approx 5.6$ &mdash; very slightly below average turnovers, a small positive.</li>
+    <li>$\texttt{vaDRB} = (5.4/28 - 0.135) \cdot 1960 \cdot 1.13 \cdot 0.28 \approx 36.5$.</li>
+    <li>$\texttt{vaORB} = (1.6/28 - 0.040) \cdot 1960 \cdot 1.13 \cdot 0.72 \approx 27.5$.</li>
+  </ul>
+
+  <h4>Step 4 &mdash; Aggregate</h4>
+  <p>$\texttt{valueAdd} \approx 133.3 + 57.5 - 41.0 + 12.0 + 64.0 + 5.6 + 36.5 + 27.5 = \mathbf{295.4}$ points.</p>
+  <p>Or, per game, ~<strong>4.2 points added</strong>. In the language of Tab&nbsp;8, the bar chart for Player A would render as:</p>
+
+  <div class="card">
+    <div class="stat-bars">
+      <div class="row"><span class="lab">Value Added</span><div class="bar-track"><span class="bar pos" style="width: 90%"></span></div><span class="val">+4.22</span></div>
+      <div class="row"><span class="lab">Scoring Volume</span><div class="bar-track"><span class="bar pos" style="width: 41%"></span></div><span class="val">+1.90</span></div>
+      <div class="row"><span class="lab">3-Pointers Added</span><div class="bar-track"><span class="bar pos" style="width: 16%"></span></div><span class="val">+0.72</span></div>
+      <div class="row"><span class="lab">2-Pointers Added</span><div class="bar-track"><span class="bar pos" style="width: 3%"></span></div><span class="val">+0.11</span></div>
+      <div class="row"><span class="lab">Free Throws Added</span><div class="bar-track"><span class="bar neg" style="width: 1%"></span></div><span class="val">&minus;0.01</span></div>
+      <div class="row"><span class="lab">Assists Added</span><div class="bar-track"><span class="bar neg" style="width: 13%"></span></div><span class="val">&minus;0.59</span></div>
+      <div class="row"><span class="lab">Steals Added</span><div class="bar-track"><span class="bar pos" style="width: 4%"></span></div><span class="val">+0.17</span></div>
+      <div class="row"><span class="lab">Blocks Added</span><div class="bar-track"><span class="bar pos" style="width: 20%"></span></div><span class="val">+0.91</span></div>
+      <div class="row"><span class="lab">Turnovers Added</span><div class="bar-track"><span class="bar pos" style="width: 2%"></span></div><span class="val">+0.08</span></div>
+      <div class="row"><span class="lab">Defensive Rebounds</span><div class="bar-track"><span class="bar pos" style="width: 11%"></span></div><span class="val">+0.52</span></div>
+      <div class="row"><span class="lab">Offensive Rebounds</span><div class="bar-track"><span class="bar pos" style="width: 9%"></span></div><span class="val">+0.39</span></div>
+    </div>
+  </div>
+
+  <p>The decomposition tells a story the headline number cannot: Player A&rsquo;s ~4.2 PPG of added value comes from <em>volume scoring</em> (~45%), <em>rim protection</em> (~22%), and <em>rebounding on both ends</em> (~22%). Three-point efficiency contributes meaningfully (~17%). Below-average passing for his minutes (<code>vaAST</code> negative) is the only material drag. A floor-spacing five who anchors a defense reads exactly the way the framework should expect such a player to read.</p>
+
+  <div class="callout green">
+    <span class="label">What this earns you</span>
+    The decomposition is what makes <em>Trey&rsquo;s NBA Stats Stuff</em> different from a single-number metric. PER will tell you Player A had a 22.0 season; BPM might say +3.5; Win Shares might say 8.4. None of those tell you that the player&rsquo;s edge is volume + defense + glass and that a passing upgrade is the obvious place to grow. The Tab&nbsp;8 view does, on a single chart, with units anyone in basketball understands.
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- 6. GLOSSARY -->
+  <!-- ============================================================= -->
+  <h2 id="glossary">6. Variable glossary <a class="anchor-link" href="#glossary">#</a></h2>
+
+  <h3>Value Added components</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Variable</th><th>Display name</th><th>Units</th><th>What it measures</th></tr></thead>
+      <tbody>
+        <tr><td><code>valueAdd</code></td><td>Value Added</td><td>points</td><td>Sum of all eight components below. Headline impact figure relative to a league-average minute.</td></tr>
+        <tr><td><code>vaPTSv</code></td><td>Scoring Volume Added</td><td>points</td><td>Excess points produced per minute, scaled by minutes played. Measures shouldering of scoring load.</td></tr>
+        <tr><td><code>PTSAdd</code></td><td>Efficiency Points Added</td><td>points</td><td>Sum of <code>2&middot;X2PAdd + 3&middot;X3PAdd + FTAdd</code>. Points produced by shooting better than league average on the player&rsquo;s actual attempts.</td></tr>
+        <tr><td><code>X3PAdd</code></td><td>3-Pointers Added</td><td>makes</td><td>Excess makes vs. league 3P% on the player&rsquo;s 3PA. Multiply by 3 for points.</td></tr>
+        <tr><td><code>X2PAdd</code></td><td>2-Pointers Added</td><td>makes</td><td>Excess makes vs. league 2P% on the player&rsquo;s 2PA. Multiply by 2 for points.</td></tr>
+        <tr><td><code>FTAdd</code></td><td>Free Throws Added</td><td>makes &equiv; points</td><td>Excess makes vs. league FT% on the player&rsquo;s FTA.</td></tr>
+        <tr><td><code>vaAST</code></td><td>Assists Added</td><td>points</td><td>Above-average assist rate, weighted by points per made FG and the marginal-credit factor $(1 - \texttt{laFG.})$.</td></tr>
+        <tr><td><code>vaSTL</code></td><td>Steals Added</td><td>points</td><td>Above-average steal rate, weighted by points per possession.</td></tr>
+        <tr><td><code>vaBLK</code></td><td>Blocks Added</td><td>points</td><td>Above-average block rate, weighted by PPP and discounted by defensive-rebound rate.</td></tr>
+        <tr><td><code>vaTOV</code></td><td>Turnovers Added</td><td>points</td><td>Sign-flipped: positive means fewer turnovers than league average. Weighted by PPP.</td></tr>
+        <tr><td><code>vaDRB</code></td><td>Defensive Rebounds Added</td><td>points</td><td>Above-average DRB rate, weighted by PPP and the offensive-rebound rate.</td></tr>
+        <tr><td><code>vaORB</code></td><td>Offensive Rebounds Added</td><td>points</td><td>Above-average ORB rate, weighted by PPP and the defensive-rebound rate.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>League baselines (per-season)</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Variable</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr><td><code>laPTSperM</code></td><td>Median per-minute points across qualifying players</td></tr>
+        <tr><td><code>laASTperM</code>, <code>laSTLperM</code>, <code>laBLKperM</code>, <code>laTOVperM</code>, <code>laDRBperM</code>, <code>laORBperM</code>, <code>laTRBperM</code></td><td>Median per-minute league rates</td></tr>
+        <tr><td><code>la2P.</code>, <code>la3P.</code>, <code>laFT.</code>, <code>laFG.</code></td><td>League-wide shooting accuracies</td></tr>
+        <tr><td><code>la0.3.</code>, <code>la3.10.</code>, <code>la10.16.</code>, <code>la16.3.</code></td><td>League shooting accuracy by distance bucket (0&ndash;3 ft, 3&ndash;10 ft, 10&ndash;16 ft, 16+ ft and three)</td></tr>
+        <tr><td><code>laPTSperMake</code></td><td>Average points per made field goal</td></tr>
+        <tr><td><code>laPTSperPoss</code></td><td>Points per possession; imputed for pre-1973 seasons via OLS on <code>laPTSperM</code>, <code>laTRBperM</code></td></tr>
+        <tr><td><code>laORBrate</code>, <code>laDRBrate</code></td><td>Fraction of all rebounds that are offensive / defensive</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Auxiliary stats surfaced in the UI</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Variable</th><th>Display</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>fPTS</code></td><td>Fantasy Points</td><td>Standard FanDuel/DraftKings-style scoring; included for fantasy use cases.</td></tr>
+        <tr><td><code>fPTS2</code></td><td>Sleeper Fantasy Points</td><td>Sleeper&rsquo;s scoring rules, separate column.</td></tr>
+        <tr><td><code>GmSc</code></td><td>Game Score</td><td>Hollinger&rsquo;s formula; pulled directly from Basketball-Reference.</td></tr>
+        <tr><td><code>PlusMinus</code></td><td>+/-</td><td>Live game-log column from Basketball-Reference; used as the x-axis on the impact scatter (Tabs 4&ndash;5).</td></tr>
+        <tr><td><code>vaPG</code>, <code>vaPerc</code></td><td>VA per game / VA percentile</td><td>Derived in the Leaderboard&rsquo;s neighborhood and team tables.</td></tr>
+        <tr><td><code>z_s</code></td><td>z-score (per-game VA)</td><td>Used for the neighborhood standings table.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- 7. DATA & PIPELINE -->
+  <!-- ============================================================= -->
+  <h2 id="data">7. Data &amp; pipeline <a class="anchor-link" href="#data">#</a></h2>
+
+  <h3>Sources</h3>
+  <ul>
+    <li><strong>Season totals.</strong> Scraped per-year from <code>basketball-reference.com/leagues/NBA_&lt;year&gt;_totals.html</code> for the regular season and playoffs separately, then concatenated.</li>
+    <li><strong>Shooting distance splits.</strong> Scraped from <code>NBA_&lt;year&gt;_shooting.html</code> from 1996&ndash;97 onward; older seasons get NA-padded shooting splits and fall through to the appropriate <code>valueAdd_*</code> variant.</li>
+    <li><strong>Live game logs.</strong> Scraped per-player from Basketball-Reference player pages on demand for any tab that requires within-season game-by-game information.</li>
+    <li><strong>Live box scores.</strong> Scraped from the boxscore pages and the &ldquo;daily&rdquo; index for date-based views.</li>
+    <li><strong>Team colors.</strong> Maintained statically in <code>Complete Data/team_hex_colors.csv</code>.</li>
+  </ul>
+
+  <h3>Refresh and caching</h3>
+  <p>The bootstrap routine (<code>totals_collect.R</code>) writes a dated daily snapshot to <code>Complete Data/Totals_s_&lt;DATE&gt;.csv</code> and <code>Complete Data/Totals_p_&lt;DATE&gt;.csv</code> the first time the app is opened on any given day. Subsequent invocations on the same day re-use the snapshot, so the app responds instantly. League-baseline summaries are written to <code>Complete Data/avgsSummary.csv</code> in the same step.</p>
+
+  <h3>Per-game recomputation</h3>
+  <p>Game-log views recompute the Value Added components on the fly: each game row is joined to the current season&rsquo;s row in <code>avgsSummary.csv</code> and the formulas in &sect;3.2 are evaluated with that game&rsquo;s box-score statistics. This keeps the live view exactly consistent with the season-level decomposition while letting the user drill into individual nights.</p>
+
+  <!-- ============================================================= -->
+  <!-- 8. LIMITATIONS -->
+  <!-- ============================================================= -->
+  <h2 id="limitations">8. Limitations <a class="anchor-link" href="#limitations">#</a></h2>
+
+  <ol>
+    <li><strong>Box-score floor.</strong> The framework can only see what the box score records. Off-ball defense, screen quality, gravity, deflections (until very recently), and most communication-based contributions are invisible. A player whose value is concentrated in those areas will be systematically undercounted.</li>
+    <li><strong>Assist credit is opinionated.</strong> The $(1 - \texttt{laFG.})$ marginal factor is a defensible choice but not the only defensible choice. A reader who prefers a different counterfactual (say, a flat 2-point credit per assist, or a 0.5 marginal factor) should mentally rescale <code>vaAST</code>; everything else is unaffected.</li>
+    <li><strong>Rebound attribution is also opinionated.</strong> Crediting a rebound as &ldquo;a possession the team would have lost&rdquo; via the <em>opposite-end</em> rebound rate is one model; team-level rebound chains and contested-vs.-uncontested adjustments would refine it.</li>
+    <li><strong>Per-minute baselines do not adjust for pace, role, or position.</strong> A high-pace era inflates every counting stat; the framework controls for this in its <em>cross-season</em> comparison (every player is z-scored against their own season) but a within-season comparison still mixes high-pace and low-pace teams without adjustment.</li>
+    <li><strong>Pre-1974 fallback.</strong> Variant&nbsp;3 of the formula uses estimated rebound splits and omits steals/blocks/turnovers because they were not recorded. Pre-1974 <code>valueAdd</code> values are therefore comparable <em>among themselves</em> but should not be put on the same axis as modern values without caveat.</li>
+    <li><strong>Basketball-Reference source dependence.</strong> Any change in HTML structure or rate-limiting at the source can break the daily refresh until the scraper is updated.</li>
+    <li><strong>The framework measures one number very well, but not every number.</strong> Defensive rating, on/off splits, lineup-adjusted plus/minus, and tracking-derived metrics are complements to <code>valueAdd</code>, not substitutes. The intended use is &ldquo;<code>valueAdd</code> first, then triangulate.&rdquo;</li>
+  </ol>
+
+  <!-- ============================================================= -->
+  <!-- 9. EXTENSIONS -->
+  <!-- ============================================================= -->
+  <h2 id="future">9. Extensions &amp; future work <a class="anchor-link" href="#future">#</a></h2>
+
+  <ul>
+    <li><strong>Position- and role-conditional baselines.</strong> Replacing league-wide medians with position-conditional medians (or with usage-bucketed baselines) would allow the framework to ask &ldquo;above average for this <em>kind</em> of player&rdquo; rather than &ldquo;above average for any player.&rdquo; This is a one-table change in <code>avgsSummary.csv</code>.</li>
+    <li><strong>Possession-level pace adjustment.</strong> Multiplying per-minute baselines by a team-relative pace factor would normalize 1980s vs. 2020s comparisons within the framework rather than only via the rank-based Career Comparison view.</li>
+    <li><strong>Tracking-data integration.</strong> Adding gravity, defensive matchup time, and screen-assist data from Second Spectrum / NBA Stats would close the &ldquo;invisible defense&rdquo; gap explicitly. The Tab&nbsp;8 bar chart would gain rows for &ldquo;Off-ball Gravity Added,&rdquo; &ldquo;Matchup Defense Added,&rdquo; etc.</li>
+    <li><strong>Lineup-conditional decomposition.</strong> Splitting <code>valueAdd</code> by the lineup the player was on the floor with would let the user separate a player&rsquo;s individual production from teammate-driven production in a defensible way.</li>
+    <li><strong>Bayesian shrinkage on small samples.</strong> Particularly relevant for playoffs and for early-season game-log views, where 5-game samples are noisy. Shrinking each component toward the player&rsquo;s season-long mean would give better in-window estimates.</li>
+    <li><strong>Public release of the season-level dataset.</strong> The <code>Complete Data/Totals_s_*.csv</code> and <code>Totals_p_*.csv</code> files are independently useful research datasets and could be published on a versioned cadence.</li>
+  </ul>
+
+  <!-- ============================================================= -->
+  <!-- 10. CREDITS -->
+  <!-- ============================================================= -->
+  <h2 id="credits">10. Credits <a class="anchor-link" href="#credits">#</a></h2>
+
+  <p><em>Trey&rsquo;s NBA Stats Stuff</em> is built and maintained by Trey Mayhew. The app is deployed on shinyapps.io at <a href="https://tmayhew1.shinyapps.io/nba-projects/" target="_blank" rel="noopener">tmayhew1.shinyapps.io/nba-projects</a>. Source for both the app and this documentation lives at <a href="https://github.com/tmayhew1/nba-projects" target="_blank" rel="noopener">github.com/tmayhew1/nba-projects</a>.</p>
+
+  <p>All NBA data is sourced from <a href="https://www.basketball-reference.com/" target="_blank" rel="noopener">Basketball-Reference</a>. Team color palettes are maintained statically in the repository. The R Shiny framework underlies the application; <code>tidyverse</code>, <code>rvest</code>, <code>httr</code>, <code>ggplot2</code>, <code>patchwork</code>, and <code>DT</code> do most of the heavy lifting.</p>
+
+  <p>This documentation site is intended as a permanent companion to the app: a place to point new users for the framework, a reference for the formulas, and an audit trail for the analytical conclusions the app supports.</p>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <h6>Trey&rsquo;s NBA Stats Stuff</h6>
+      <p style="margin-top:0.4rem; font-size:0.92rem; line-height:1.55">A points-equivalent framework for NBA player value, built on top of Basketball-Reference&rsquo;s public dataset and an opinionated decomposition of the box score into eight additive components.</p>
+    </div>
+    <div>
+      <h6>Links</h6>
+      <ul>
+        <li><a href="https://tmayhew1.shinyapps.io/nba-projects/" target="_blank" rel="noopener">Live app</a></li>
+        <li><a href="https://github.com/tmayhew1/nba-projects" target="_blank" rel="noopener">GitHub repo</a></li>
+        <li><a href="https://www.basketball-reference.com/" target="_blank" rel="noopener">Basketball-Reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <h6>Sections</h6>
+      <ul>
+        <li><a href="#value-added">Value Added concept</a></li>
+        <li><a href="#methodology">Methodology</a></li>
+        <li><a href="#tabs">Tab guide</a></li>
+        <li><a href="#glossary">Glossary</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
