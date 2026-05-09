@@ -863,40 +863,68 @@
 
   <p>The Four Factors tab is where most analytical questions get answered, so it is worth walking through two real comparisons in detail. The first compares two of the Eastern Conference&rsquo;s premier All-Star guards; the second compares two of the Western Conference&rsquo;s premier scoring engines. Both pairs use the 2025&ndash;26 season as of this writing.</p>
 
-  <p>For each pair, the same view is shown across two of the four factor panels, and the read is unpacked: where each player sits in the league cloud, what that geometric position implies in points-equivalent units, and what conclusion the framework licenses.</p>
+  <p>Each pairing is shown across <strong>all four factor panels</strong> in panel order. For every panel the read is the same: where each player sits in the league cloud, what that geometric position implies in points-equivalent units, and what conclusion the framework licenses.</p>
 
-  <!-- ===== Example 1 ===== -->
+  <!-- ===== Example 1: Maxey vs Brunson ===== -->
   <h3 id="ex-maxey-brunson">6.1 Two East guards, two identities &mdash; Tyrese Maxey vs. Jalen Brunson, &rsquo;26</h3>
 
-  <p>Maxey (Philadelphia) and Brunson (New York) are two of the Eastern Conference&rsquo;s top backcourt scorers. They reach roughly comparable scoring outputs, and a casual look at their PPG would call them similar. The Four Factors view dismantles that impression.</p>
+  <p>Maxey (Philadelphia) and Brunson (New York) are two of the Eastern Conference&rsquo;s top backcourt scorers. Headline numbers put them in the same tier &mdash; both around 26&ndash;28 PPG, both All-Stars, both lead-guard-of-a-contender roles. The Four Factors view shows where the resemblance ends.</p>
+
+  <div class="example-block">
+    <h4>Volume &times; efficiency (Panel 1)</h4>
+    <figure class="figure">
+      <img src="img/ex-maxey-brunson-volume-efficiency.png" alt="Four Factors panel 1 for Tyrese Maxey vs. Jalen Brunson, 2025-26. Maxey sits at 28.29 PPG and 53.6 eFG%, slightly above the regression line; Brunson sits at 26.04 PPG and 53.3 eFG%, slightly below the regression line.">
+      <figcaption><strong>Panel 1, &rsquo;26.</strong> X-axis: scoring volume added (<code>vaPTSv/G</code>). Y-axis: efficiency points added (<code>PTSAdd/G</code>).</figcaption>
+    </figure>
+    <div class="read-row">
+      <span class="who">Maxey</span><span class="what">28.29 PPG at 53.6 eFG% &mdash; <strong>slightly above the regression line</strong>. Real volume paired with marginally above-baseline efficiency for that volume.</span>
+      <span class="who alt">Brunson</span><span class="what">26.04 PPG at 53.3 eFG% &mdash; <strong>slightly below the regression line</strong>. Comparable volume but a fraction below typical efficiency for what he attempts.</span>
+    </div>
+    <div class="takeaway"><strong>Takeaway</strong>The headline-PPG closeness reflects similar volume; the y-axis position separates them on efficiency-added value. Maxey&rsquo;s scoring profile compounds slightly more value per shot; Brunson&rsquo;s sits closer to neutral on efficiency.</div>
+  </div>
+
+  <div class="example-block">
+    <h4>Playmaking &times; ball security (Panel 2)</h4>
+    <figure class="figure">
+      <img src="img/ex-maxey-brunson-playmaking.png" alt="Four Factors panel 2 for Tyrese Maxey vs. Jalen Brunson, 2025-26. Brunson sits at 6.80 APG with 2.4 TOV; Maxey sits at 6.59 APG with 2.4 TOV. Both are well above the league cloud on assists with similar low turnovers.">
+      <figcaption><strong>Panel 2, &rsquo;26.</strong> X-axis: turnovers saved (<code>vaTOV/G</code>). Y-axis: assists added (<code>vaAST/G</code>).</figcaption>
+    </figure>
+    <div class="read-row">
+      <span class="who">Maxey</span><span class="what">6.59 APG, 2.4 TOV &mdash; <strong>well above the regression line</strong>. Strong creator at low turnover cost.</span>
+      <span class="who alt">Brunson</span><span class="what">6.80 APG, 2.4 TOV &mdash; <strong>also well above the regression line</strong>, marginally higher on assists than Maxey at identical turnover load.</span>
+    </div>
+    <div class="takeaway"><strong>Takeaway</strong>This is the panel where the two players look most alike. Both contribute meaningfully positive value on the assist&ndash;turnover axis. The framework treats them as essentially equivalent here; whatever differentiates the comparison lives in the other three panels.</div>
+  </div>
 
   <div class="example-block">
     <h4>Defensive events &times; rebounding (Panel 3)</h4>
     <figure class="figure">
-      <img src="img/ex-maxey-brunson-defense-rebounding.png" alt="Four Factors panel 3 (Stocks Added vs. Total Rebounding Value) for Tyrese Maxey vs. Jalen Brunson, 2025-26. Maxey sits in the upper-left at 2.64 STK/G and 4.14 TRB; Brunson sits in the lower-left at 0.88 STK/G and 3.34 TRB.">
-      <figcaption><strong>Panel 3, &rsquo;26.</strong> X-axis: total rebounding value (<code>vaORB + vaDRB</code>). Y-axis: stocks added (<code>vaSTL + vaBLK</code>). Each grey dot is a qualifying league peer that season.</figcaption>
+      <img src="img/ex-maxey-brunson-defense-rebounding.png" alt="Four Factors panel 3 for Tyrese Maxey vs. Jalen Brunson, 2025-26. Maxey sits in the upper-left at 2.64 STK/G and 4.14 TRB; Brunson sits in the lower-left at 0.88 STK/G and 3.34 TRB.">
+      <figcaption><strong>Panel 3, &rsquo;26.</strong> X-axis: total rebounding value (<code>vaORB + vaDRB</code>). Y-axis: stocks added (<code>vaSTL + vaBLK</code>).</figcaption>
     </figure>
     <div class="read-row">
-      <span class="who">Maxey</span><span class="what">Upper-left of the cloud. <strong>Well above league average on stocks</strong> at 2.64 per game (~+0.85 standard deviations) and slightly below average on rebounding at 4.14 TRB. Generating real defensive event value for a guard.</span>
+      <span class="who">Maxey</span><span class="what">Upper-left of the cloud. <strong>Well above league average on stocks</strong> at 2.64 per game and slightly below on rebounding at 4.14 TRB. Real defensive event value for a guard.</span>
       <span class="who alt">Brunson</span><span class="what">Lower-left of the cloud. <strong>Below league average on both axes</strong> at 0.88 STK/G and 3.34 TRB. Neither stocks nor rebounding contribute positive value for him.</span>
     </div>
-    <div class="takeaway"><strong>Takeaway</strong>The defensive-events gap is large enough to be material in any all-around comparison of the two players. Headline scoring is silent on this dimension; the framework surfaces it in the same points-equivalent units that scoring uses, so the gap can be added or subtracted from the rest of the comparison without changing scales.</div>
+    <div class="takeaway"><strong>Takeaway</strong>This is the panel where the divergence becomes large. The defensive-events gap is material in any all-around comparison &mdash; not visible at all in PPG, but expressed in the same points-equivalent units that scoring uses, so it can be added or subtracted from the rest of the comparison without changing scales.</div>
   </div>
 
   <div class="example-block">
     <h4>Shot diet (Panel 4)</h4>
     <figure class="figure">
-      <img src="img/ex-maxey-brunson-shot-diet.png" alt="Four Factors panel 4 (scoring efficiency by distance bucket) for Tyrese Maxey vs. Jalen Brunson, 2025-26. Maxey is materially better at the free throw line (89.2% vs. 84.1%) and similar from three (36.7% vs. 36.9%); Brunson is materially better in the midrange (47.6% vs. 43.1% on floaters; 48.9% vs. 41.8% on 10-16; 51.7% vs. 45% on 16+).">
+      <img src="img/ex-maxey-brunson-shot-diet.png" alt="Four Factors panel 4 for Tyrese Maxey vs. Jalen Brunson, 2025-26. Maxey is materially better at the free throw line (89.2% vs. 84.1%) and similar from three (36.7% vs. 36.9%); Brunson is materially better in the midrange (47.6% vs. 43.1% on floaters; 48.9% vs. 41.8% on 10-16; 51.7% vs. 45% on 16+).">
       <figcaption><strong>Panel 4, &rsquo;26.</strong> Scoring efficiency by shot distance, plotted against the league&rsquo;s qualifying scorers in each bucket. The horizontal line in each facet marks league average.</figcaption>
     </figure>
     <div class="read-row">
       <span class="who">Maxey</span><span class="what">Elite at the free throw line (89.2% on 417 attempts) and high-volume from three (599 attempts at 36.7%, league-average accuracy). <strong>Below average inside the arc on every two-point bucket</strong> &mdash; 67.5% at the rim, 43.1% on floaters, 41.8% from 10-16, 45% from 16+.</span>
       <span class="who alt">Brunson</span><span class="what">Comparable from three (528 attempts at 36.9%) but with a substantially better midrange. <strong>Well above league average on every two-point bucket from the floater out</strong> &mdash; 47.6%, 48.9%, 51.7%. Slightly below league average at the free throw line (84.1%).</span>
     </div>
-    <div class="takeaway"><strong>Takeaway</strong>Two players who reach similar PPG by very different paths. Brunson is the more classical three-level scorer with a midrange edge; Maxey leans on three-point volume and elite foul-line shooting. For schematic preparation the implication is concrete: funnel Brunson off the midrange catch; run Maxey off the line and concede the contested midrange. Same nominal scoring output, opposite playbook.</div>
+    <div class="takeaway"><strong>Takeaway</strong>Two players who reach similar PPG by very different paths. Brunson is the more classical three-level scorer with a midrange edge; Maxey leans on three-point volume and elite foul-line shooting. For schematic preparation: funnel Brunson off the midrange catch; run Maxey off the line and concede the contested midrange. Same nominal scoring output, opposite playbook.</div>
   </div>
 
-  <!-- ===== Example 2 ===== -->
+  <p><strong>Putting the four panels together for Maxey vs. Brunson.</strong> They look alike on volume and creation; Maxey&rsquo;s edges are efficiency-added scoring and defensive event creation; Brunson&rsquo;s edge is the midrange-led shot diet. Their PPG would tell you they are nearly the same player. The Four Factors view tells you they are not.</p>
+
+  <!-- ===== Example 2: Edwards vs Doncic ===== -->
   <h3 id="ex-edwards-doncic">6.2 Two West engines, two paths to the same scoring tier &mdash; Anthony Edwards vs. Luka Don&#269;i&#263;, &rsquo;26</h3>
 
   <p>Edwards (Minnesota) and Don&#269;i&#263; (Los Angeles) are two of the Western Conference&rsquo;s premier scoring engines. Both finish in the top handful of the league in raw scoring; both anchor an offense; both are MVP candidates. The Four Factors view shows that the route they take to that scoring tier is opposite on almost every axis.</p>
@@ -904,7 +932,7 @@
   <div class="example-block">
     <h4>Volume &times; efficiency (Panel 1)</h4>
     <figure class="figure">
-      <img src="img/ex-edwards-doncic-volume-efficiency.png" alt="Four Factors panel 1 (efficiency vs. volume) for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic is at the extreme right of the cloud at 33.48 PPG with 56.3 eFG%, sitting essentially on league-average efficiency. Edwards is upper-right of Doncic at 28.80 PPG and 57.2 eFG%, well above the regression line.">
+      <img src="img/ex-edwards-doncic-volume-efficiency.png" alt="Four Factors panel 1 for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic is at the extreme right of the cloud at 33.48 PPG with 56.3 eFG%, sitting essentially on league-average efficiency. Edwards is upper-right of Doncic at 28.80 PPG and 57.2 eFG%, well above the regression line.">
       <figcaption><strong>Panel 1, &rsquo;26.</strong> X-axis: scoring volume added (<code>vaPTSv/G</code>). Y-axis: efficiency points added (<code>PTSAdd/G</code>). The grey regression line through the league cloud marks the baseline relationship between volume and efficiency.</figcaption>
     </figure>
     <div class="read-row">
@@ -915,10 +943,36 @@
   </div>
 
   <div class="example-block">
+    <h4>Playmaking &times; ball security (Panel 2)</h4>
+    <figure class="figure">
+      <img src="img/ex-edwards-doncic-playmaking.png" alt="Four Factors panel 2 for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic sits in the extreme upper-left at 8.28 APG and 4.0 TOV/G, far above the league on assists and far below on ball security. Edwards is near the origin at 3.70 APG and 2.9 TOV/G, slightly below league average on both axes.">
+      <figcaption><strong>Panel 2, &rsquo;26.</strong> X-axis: turnovers saved (<code>vaTOV/G</code>, sign-flipped so right = better). Y-axis: assists added (<code>vaAST/G</code>). The strong negative slope through the cloud reflects the league reality that high-assist players are also high-turnover players.</figcaption>
+    </figure>
+    <div class="read-row">
+      <span class="who">Don&#269;i&#263;</span><span class="what">Extreme upper-left. <strong>League-leading playmaking value at 8.28 APG</strong>, well above the regression line even after accounting for his significantly negative <code>vaTOV</code> (4.0 TOV/G). The net <code>vaAST + vaTOV</code> is still strongly positive.</span>
+      <span class="who alt">Edwards</span><span class="what">Near the origin. <strong>3.70 APG and 2.9 TOV/G</strong> &mdash; both modestly below league baseline given his role. Neither contributes meaningful positive value; neither destroys it either.</span>
+    </div>
+    <div class="takeaway"><strong>Takeaway</strong>Even though Edwards is the more efficient scorer in Panel 1, Don&#269;i&#263; earns substantial <em>additional</em> value here that Edwards does not. The Tab&nbsp;8 (Value Breakdown) charts for the two players would diverge most starkly on this axis: Don&#269;i&#263;&rsquo;s <code>vaAST</code> bar towers; his <code>vaTOV</code> bar is the largest negative on his chart; the net is still positive and large. Edwards&rsquo;s playmaking and turnover bars are both small.</div>
+  </div>
+
+  <div class="example-block">
+    <h4>Defensive events &times; rebounding (Panel 3)</h4>
+    <figure class="figure">
+      <img src="img/ex-edwards-doncic-defense-rebounding.png" alt="Four Factors panel 3 for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic sits to the right and slightly above the regression line at 2.17 STK/G and 7.73 TRB; Edwards is to the left near league-average rebounding for guards at 2.16 STK/G and 4.95 TRB.">
+      <figcaption><strong>Panel 3, &rsquo;26.</strong> Same axes as in &sect;6.1 panel 3 &mdash; note the dramatically different x-coordinates here, especially Don&#269;i&#263;&rsquo;s rebounding rate.</figcaption>
+    </figure>
+    <div class="read-row">
+      <span class="who">Don&#269;i&#263;</span><span class="what">Right and slightly above the regression line. <strong>2.17 STK/G and 7.73 TRB</strong> &mdash; outstanding rebounding production from a guard, generating real <code>vaDRB + vaORB</code>.</span>
+      <span class="who alt">Edwards</span><span class="what">Comparable on stocks at <strong>2.16 STK/G</strong>, but only <strong>4.95 TRB</strong> &mdash; near league-average rebounding for his role. Stocks contribute; rebounding is essentially neutral.</span>
+    </div>
+    <div class="takeaway"><strong>Takeaway</strong>Don&#269;i&#263; adds another channel of value here that Edwards does not: rebounding for a guard at near-big-man rates. Across his Tab&nbsp;8 breakdown this would render as positive <code>vaDRB</code> and <code>vaORB</code> bars where Edwards&rsquo;s would be flat. The two players are indistinguishable on stocks; Don&#269;i&#263;&rsquo;s extra value comes off the glass.</div>
+  </div>
+
+  <div class="example-block">
     <h4>Shot diet (Panel 4)</h4>
     <figure class="figure">
-      <img src="img/ex-edwards-doncic-shot-diet.png" alt="Four Factors panel 4 (scoring efficiency by distance bucket) for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic is well above league average on every two-point distance bucket (82.9% at rim, 59.5% on floaters, 50.9% from 10-16, 40.2% from 16+). Edwards is below league average on every two-point bucket but above average from three (39.9% on 514 attempts vs. Doncic's 36.6% on 694).">
-      <figcaption><strong>Panel 4, &rsquo;26.</strong> Same view as in &sect;6.1 but for the Edwards/Don&#269;i&#263; comparison. The shape of the dots tells the same headline-eFG story two completely different ways.</figcaption>
+      <img src="img/ex-edwards-doncic-shot-diet.png" alt="Four Factors panel 4 for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic is well above league average on every two-point distance bucket (82.9% at rim, 59.5% on floaters, 50.9% from 10-16, 40.2% from 16+). Edwards is below league average on every two-point bucket but above average from three (39.9% on 514 attempts vs. Doncic's 36.6% on 694).">
+      <figcaption><strong>Panel 4, &rsquo;26.</strong> The shape of the dots tells the same headline-eFG story two completely different ways.</figcaption>
     </figure>
     <div class="read-row">
       <span class="who">Don&#269;i&#263;</span><span class="what"><strong>Dominates the interior</strong> at every distance: 82.9% at the rim, 59.5% on floaters, 50.9% from 10-16, 40.2% from 16+. Below league average from three (36.6% on a massive 694 attempts).</span>
@@ -927,22 +981,9 @@
     <div class="takeaway"><strong>Takeaway</strong>The 56-vs-57 eFG headline conceals fundamentally different shot diets. Don&#269;i&#263;&rsquo;s scoring efficiency is interior-driven; Edwards&rsquo;s is perimeter-driven. The framework keeps both threads visible: rim and floater accuracy ages differently than three-point accuracy, and the defensive coverages that punish each player are different. Aging-curve projections, playoff-coverage projections, and team-fit reasoning all diverge from this single panel.</div>
   </div>
 
-  <div class="example-block">
-    <h4>Playmaking &times; ball security (Panel 2)</h4>
-    <figure class="figure">
-      <img src="img/ex-edwards-doncic-playmaking.png" alt="Four Factors panel 2 (Assists Added vs. Turnovers Saved) for Anthony Edwards vs. Luka Doncic, 2025-26. Doncic sits in the extreme upper-left at 8.28 APG and 4.0 TOV/G, far above the league on assists and far below on ball security. Edwards is near the origin at 3.70 APG and 2.9 TOV/G, slightly below league average on both axes.">
-      <figcaption><strong>Panel 2, &rsquo;26.</strong> X-axis: turnovers saved (<code>vaTOV/G</code>, sign-flipped so right = better). Y-axis: assists added (<code>vaAST/G</code>). The strong negative slope through the cloud reflects the league reality that high-assist players are also high-turnover players.</figcaption>
-    </figure>
-    <div class="read-row">
-      <span class="who">Don&#269;i&#263;</span><span class="what">Extreme upper-left. <strong>League-leading playmaking value at 8.28 APG</strong>, well above the regression line even after accounting for his significantly negative <code>vaTOV</code> (4.0 TOV/G). The net <code>vaAST + vaTOV</code> is still strongly positive.</span>
-      <span class="who alt">Edwards</span><span class="what">Near the origin. <strong>3.70 APG and 2.9 TOV/G</strong> &mdash; both modestly below league baseline given his role. Neither contributes meaningful positive value; neither destroys it either.</span>
-    </div>
-    <div class="takeaway"><strong>Takeaway</strong>Even though Edwards is the more efficient scorer in Panel 1, Don&#269;i&#263; earns substantial <em>additional</em> value here that Edwards does not. The Tab&nbsp;8 (Value Breakdown) charts for the two players would diverge most starkly on this axis: Don&#269;i&#263;&rsquo;s <code>vaAST</code> bar towers; his <code>vaTOV</code> bar is the largest negative on his chart; the net is still positive and large. Edwards&rsquo;s playmaking and turnover bars are both small. For an offense built around its primary creator, that net difference matters.</div>
-  </div>
-
   <div class="callout orange">
-    <span class="label">Putting the panels together</span>
-    Across the Four Factors view, Edwards&rsquo;s edge is <em>efficient scoring with clean ball-handling and a perimeter-led shot diet</em>; Don&#269;i&#263;&rsquo;s is <em>unmatched scoring volume + elite playmaking + interior-led efficiency, paid for partly with turnovers</em>. Both are top-tier offensive engines. Neither comparison reduces to a single number cleanly &mdash; and the framework&rsquo;s point is that it shouldn&rsquo;t. The structural difference between the two profiles is the analytically interesting object, and the four panels make it legible without forcing a verdict.
+    <span class="label">Putting all four panels together</span>
+    Across the Four Factors view, Edwards&rsquo;s edge is <em>efficient scoring with clean ball-handling and a perimeter-led shot diet</em>; Don&#269;i&#263;&rsquo;s is <em>unmatched scoring volume + elite playmaking + interior-led efficiency + guard-rare rebounding, paid for partly with turnovers</em>. Both are top-tier offensive engines. Neither comparison reduces to a single number cleanly &mdash; and the framework&rsquo;s point is that it shouldn&rsquo;t. The structural difference between the two profiles is the analytically interesting object, and the four panels make it legible without forcing a verdict.
   </div>
 
   <!-- ============================================================= -->
